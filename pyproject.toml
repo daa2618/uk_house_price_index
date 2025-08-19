@@ -1,0 +1,21 @@
+[project]
+name = "uk-house-price-index"
+version = "0.1.0"
+description = "A self-serve dashboard and data toolkit for exploring the UK House Price Index (HPI) by geography and time period."
+authors = [
+    {name = "Dev Anbarasu",email = "anand26dev@gmail.com"}
+]
+license = {text = "APACHE 2.0"}
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas (>=2.3.1,<3.0.0)",
+    "geopandas (>=1.1.1,<2.0.0)",
+    "plotly (>=6.3.0,<7.0.0)",
+    "requests (>=2.32.5,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
