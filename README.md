@@ -54,7 +54,7 @@ uk_house_price_index/
 
 ## Notebooks
 
-See [notebooks/try_hpi.ipynb](uk_house_price_index/notebooks/try_hpi.ipynb) for example usage.
+See [try_hpi.ipynb](uk_house_price_index/try_hpi.ipynb) for example usage.
 
 ## License
 
