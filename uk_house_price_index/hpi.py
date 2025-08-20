@@ -9,7 +9,7 @@ import pandas as pd
 import copy
 from typing import Union, Optional, List, Dict, Any
 from utils.response import Response
-from utils.basic_plots import CategoryPlots
+from utils.basic_plots import CategoryPlots, go, px
 from utils.plotly_imports import categorical_color_combinations
 from utils.data_loader import Dataset
 from utils.data_version import FileVersion
@@ -190,63 +190,130 @@ class HousePriceIndexPlots:
             return pd.DataFrame
         
     
-    def plot_sales_volume_new_vs_existing(self):
-        if self.sales_volume_new_vs_existing.empty:
-            return
-        
-        sales_volume_new_vs_existing = self.sales_volume_new_vs_existing
+    #def plot_sales_volume_new_vs_existing(self)->go.Figure:
+    #    if self.sales_volume_new_vs_existing.empty:
+    #        return
+    #
+    #    sales_volume_new_vs_existing = self.sales_volume_new_vs_existing
+    #
+    #    cat_colors = dict(zip(sales_volume_new_vs_existing["new_vs_existing"].unique(),
+    #                          ['IndianRed', 'LightSalmon']))
+    #
+    #    cat_plots.df = sales_volume_new_vs_existing
 
-        cat_colors = dict(zip(sales_volume_new_vs_existing["new_vs_existing"].unique(), 
-                              ['IndianRed', 'LightSalmon']))
-        
-        cat_plots.df = sales_volume_new_vs_existing
-
-        fig = cat_plots.plot_by_categories(plot_type="Bar", 
-                                        x_var = "ref_period_start", 
-                                        id_col="new_vs_existing", 
-                                        y_var="value", 
-                                        colors_dict=cat_colors, 
-                                        show_labels=False)
-        fig.update_layout(barmode = "stack", 
+     #   fig = cat_plots.plot_by_categories(plot_type="Bar", 
+     #                                   x_var = "ref_period_start", 
+     #                                   id_col="new_vs_existing", 
+     #                                   y_var="value", 
+     #                                   colors_dict=cat_colors, 
+     #                                   show_labels=False)
+     #   fig.update_layout(barmode = "stack", 
                     #  barnorm = "percent"
-                        )
+     #                   )
         
-        return cat_plots._update_layout(fig, plot_title=f"Sales Volume New vs. Existing {self._sub_title}")
+     #   return cat_plots._update_layout(fig, plot_title=f"Sales Volume New vs. Existing {self._sub_title}")
     
+    def _plot_metric(self, 
+                     metric:str, 
+                     metric_category:str, 
+                     plot_type:str="Scatter")->go.Figure:
+        cat_upper = metric_category.upper().replace(" ", "_")
+        
+        metric_lower = metric.lower().replace(" ", "_")
 
-    def _plot_averages(self, avg_category:str):
-        cat_upper = avg_category.upper().replace(" ", "_")
-        cols = ["average_price"]
-        cols.extend([f"average_price_{x.lower().replace(" ", "_")}" for x in getattr(self, cat_upper)])
-
+        cols = [metric_lower]
+        cols.extend([f"{metric_lower}_{x.lower().replace(" ", "_")}" for x in getattr(self, cat_upper)])
         df_melt = self.hpi_df.melt(value_vars = cols,
             id_vars = ["ref_period_start"],
             )
 
+        
+        if plot_type.lower() == "bar":
+            df_melt = df_melt.loc[df_melt["variable"]!=metric_lower].reset_index(drop=True)
+        
         cat_plots.df = df_melt
-        fig = cat_plots.plot_by_categories(plot_type="Scatter", 
+        
+        colors_dict = dict(
+            zip(
+                df_melt["variable"].unique(),
+                px.colors.sample_colorscale(
+                    px.colors.qualitative.Vivid,
+                    df_melt["variable"].nunique()
+                )
+            )
+        )
+
+        fig = cat_plots.plot_by_categories(plot_type=plot_type, 
                                                 x_var = "ref_period_start", 
                                                 id_col="variable", 
                                                 y_var="value", 
-                                                colors_dict=None, 
-                                                show_labels=False)
-        return cat_plots._update_layout(fig, plot_title=f"Average Prices by {avg_category} {self._sub_title}")
+                                                colors_dict=colors_dict, 
+                                                show_labels=True)
+        
+        metric_title = metric.replace("_", " ").title()
+
+        fig.update_xaxes(title = "Reference Period Start")
+        fig.update_yaxes(title = metric_title)
+        return cat_plots._update_layout(fig, plot_title=f"{metric_title} by {cat_upper.replace("_", " ")} {self._sub_title}")
+
+    def _plot_house_price_index(self, category:str)->go.Figure:
+        return self._plot_metric("house_price_index", category)
+
+    def plot_house_price_index_by_build_type(self)->go.Figure:
+        return self._plot_house_price_index("BUILD_TYPES")
+
+    def plot_house_price_index_by_property_types(self)->go.Figure:
+        return self._plot_house_price_index("PROPERTY_TYPES")
+
+    def plot_house_price_index_by_occupant_types(self)->go.Figure:
+        return self._plot_house_price_index("OCCUPANT_TYPES")
     
-    def plot_average_price_by_build_types(self):
+    def plot_house_price_index_by_payment_types(self)->go.Figure:   
+        return self._plot_house_price_index("PAYMENT_TYPES")
+    
+    def _plot_sales_volume(self, category:str)->go.Figure:
+        fig = self._plot_metric("sales_volume", category, "Bar")
+        fig.update_layout(barmode = "stack", 
+                    #  barnorm = "percent"
+                        )
+        return fig
+    
+    def plot_sales_volume_by_build_types(self)->go.Figure:
+        return self._plot_sales_volume("BUILD_TYPES")
+
+    def plot_sales_volume_by_payment_types(self)->go.Figure:
+        return self._plot_sales_volume("PAYMENT_TYPES")
+
+    def _plot_averages(self, avg_category:str)->go.Figure:
+        return self._plot_metric("average_price", avg_category)
+
+    def plot_average_price_by_build_types(self)->go.Figure:
         return self._plot_averages("BUILD_TYPES")
-    
-    def plot_average_price_by_occupant_types(self):
+
+    def plot_average_price_by_occupant_types(self)->go.Figure:
         return self._plot_averages("OCCUPANT_TYPES")
-    
-    def plot_average_price_by_payment_types(self):
+
+    def plot_average_price_by_payment_types(self)->go.Figure:
         return self._plot_averages("PAYMENT_TYPES")
-    
-    def plot_average_price_by_property_types(self):
+
+    def plot_average_price_by_property_types(self)->go.Figure:
         return self._plot_averages("PROPERTY_TYPES")
     
 
+    def _plot_percentage_annual_change(self, category:str)->go.Figure:
+        return self._plot_metric("percentage_annual_change",category)
 
+    def plot_percentage_annual_change_by_build_types(self)->go.Figure:
+        return self._plot_percentage_annual_change("BUILD_TYPES")   
+    
+    def plot_percentage_annual_change_by_occupant_types(self)->go.Figure:
+        return self._plot_percentage_annual_change("OCCUPANT_TYPES")
 
+    def plot_percentage_annual_change_by_payment_types(self)->go.Figure:
+        return self._plot_percentage_annual_change("PAYMENT_TYPES")
+
+    def plot_percentage_annual_change_by_property_types(self)->go.Figure:
+        return self._plot_percentage_annual_change("PROPERTY_TYPES")
     
 
     
