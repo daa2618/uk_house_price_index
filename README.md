@@ -47,6 +47,26 @@ uk_house_price_index/
 
 3. **Plot Data**  
    Use the [`HousePriceIndexPlots`](uk_house_price_index/hpi.py) class for ready-made visualizations.
+   ![Average Price By Build Types London 2020 2024](uk_house_price_index/images/average_price_by_build_types_london_2020_2024.png)
+    ![Average Price By Build Types West-Northamptonshire 2020 2024](uk_house_price_index/images/average_price_by_build_types_west-northamptonshire_2020_2024.png)
+    ![Average Price By Occupant Types West-Northamptonshire 2020 2024](uk_house_price_index/images/average_price_by_occupant_types_west-northamptonshire_2020_2024.png)
+    ![Average Price By Payment Types West-Northamptonshire 2020 2024](uk_house_price_index/images/average_price_by_payment_types_west-northamptonshire_2020_2024.png)
+    ![Average Price By Property Types London 2020 2024](uk_house_price_index/images/average_price_by_property_types_london_2020_2024.png)
+    ![Average Price By Property Types West-Northamptonshire 2020 2024](uk_house_price_index/images/average_price_by_property_types_west-northamptonshire_2020_2024.png)
+    ![House Price Index By Build Type London 2020 2024](uk_house_price_index/images/house_price_index_by_build_type_london_2020_2024.png)
+    ![House Price Index By Build Type West-Northamptonshire 2020 2024](uk_house_price_index/images/house_price_index_by_build_type_west-northamptonshire_2020_2024.png)
+    ![House Price Index By Occupant Types West-Northamptonshire 2020 2024](uk_house_price_index/images/house_price_index_by_occupant_types_west-northamptonshire_2020_2024.png)
+    ![House Price Index By Payment Types West-Northamptonshire 2020 2024](uk_house_price_index/images/house_price_index_by_payment_types_west-northamptonshire_2020_2024.png)
+    ![House Price Index By Property Types London 2020 2024](uk_house_price_index/images/house_price_index_by_property_types_london_2020_2024.png)
+    ![House Price Index By Property Types West-Northamptonshire 2020 2024](uk_house_price_index/images/house_price_index_by_property_types_west-northamptonshire_2020_2024.png)
+    ![Percentage Annual Change By Build Types London 2020 2024](uk_house_price_index/images/percentage_annual_change_by_build_types_london_2020_2024.png)
+    ![Percentage Annual Change By Build Types West-Northamptonshire 2020 2024](uk_house_price_index/images/percentage_annual_change_by_build_types_west-northamptonshire_2020_2024.png)
+    ![Percentage Annual Change By Occupant Types West-Northamptonshire 2020 2024](uk_house_price_index/images/percentage_annual_change_by_occupant_types_west-northamptonshire_2020_2024.png)
+    ![Percentage Annual Change By Payment Types West-Northamptonshire 2020 2024](uk_house_price_index/images/percentage_annual_change_by_payment_types_west-northamptonshire_2020_2024.png)
+    ![Percentage Annual Change By Property Types West-Northamptonshire 2020 2024](uk_house_price_index/images/percentage_annual_change_by_property_types_west-northamptonshire_2020_2024.png)
+    ![Sales Volume By Build Types West-Northamptonshire 2020 2024](uk_house_price_index/images/sales_volume_by_build_types_west-northamptonshire_2020_2024.png)
+    ![Sales Volume By Payment Types West-Northamptonshire 2020 2024](uk_house_price_index/images/sales_volume_by_payment_types_west-northamptonshire_2020_2024.png)
+
 
 4. **Data Versioning**  
    Data files are automatically versioned and cached in the `data/` directory using [`FileVersion`](uk_house_price_index/utils/data_version.py).

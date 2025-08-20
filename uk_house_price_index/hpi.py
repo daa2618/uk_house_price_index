@@ -13,9 +13,10 @@ from utils.basic_plots import CategoryPlots, go, px
 from utils.plotly_imports import categorical_color_combinations
 from utils.data_loader import Dataset
 from utils.data_version import FileVersion
+from sparql import SparqlQuery
 
 cat_plots = CategoryPlots()
-
+sparqlquery = SparqlQuery()
 
 
 class HousePriceIndex:
@@ -23,10 +24,14 @@ class HousePriceIndex:
 
     def __init__(self):
         self._base_url = "http://landregistry.data.gov.uk/data/ukhpi/region"
+        self._hpi_regions = sparqlquery.HPI_REGIONS
+        if not self._hpi_regions.empty or not self._hpi_regions is None:
+            setattr(self, "REGION_TYPES", list(self._hpi_regions["ref_region_type_keyword"].unique()))
+    
         pass
     
     #@staticmethod
-    def fetch_hpi(self, 
+    def _fetch_hpi(self, 
                   start_year:Union[str,int], 
                   end_year:Optional[Union[str,int]]=None, 
                   region:str="united-kingdom")->Optional[List[Dict[str,Any]]]:
@@ -55,6 +60,16 @@ class HousePriceIndex:
 
         return data_list
     
+    def fetch_hpi(self, 
+                  start_year:Union[str,int], 
+                  end_year:Optional[Union[str,int]]=None, 
+                  region:str="united-kingdom")->pd.DataFrame:
+        
+        
+        query = sparqlquery.build_query_for_region(region, start_year, end_year)
+        results = sparqlquery.fetch_sparql_query(query)
+        return sparqlquery.make_data_from_results(results)
+
     @staticmethod
 
     def select_values(raw_data_list:List[Dict[str,Any]])->Optional[List[Dict[str,Any]]]:
@@ -112,7 +127,10 @@ class HousePriceIndex:
 
 
 class HousePriceIndexPlots:
-    def __init__(self, start_year:Union[str, int]=None, end_year:Union[str, int]=None, region:str="united-kingdom"):
+    def __init__(self, 
+                 start_year:Union[str, int]=None, 
+                 end_year:Union[str, int]=None, 
+                 region:str="united-kingdom"):
         self._start_year = int(start_year) if start_year else 2020
         self._end_year = int(end_year) if end_year else 2024
         self._region = (region.lower().replace(" ", "-"))
@@ -143,9 +161,9 @@ class HousePriceIndexPlots:
     
     def _fetch_hpi_df(self)->pd.DataFrame:
         #if self._hpi_df.empty:
-        data = self._hpi.fetch_hpi(self._start_year, self._end_year, self._region)
-        selected = self._hpi.select_values(data)
-        df = self._hpi.make_df(selected)
+        df = self._hpi.fetch_hpi(self._start_year, self._end_year, self._region)
+        #selected = self._hpi.select_values(data)
+        #df = self._hpi.make_df(selected)
         if not df.empty and not df is None:
             return df
          #   self._hpi_df = df

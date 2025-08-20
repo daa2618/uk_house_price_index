@@ -8,6 +8,8 @@ if str(pardir) not in sys.path:
     sys.path.insert(0, str(pardir))
 
 from utils.split_from_camel import make_snake_from_camel
+from utils.data_loader import Dataset
+from utils.data_version import FileVersion
 
 class SparqlQuery:
     _PREFIX = """
@@ -50,12 +52,26 @@ class SparqlQuery:
         """
         self.endpoint_url = endpoint_url
         self.verbose = verbose
+        self._hpi_regions = None
 
 
-    def build_query_for_region(self, region: str, start_year: int = 2020, end_year: int=2024) -> str:
+    def build_query_for_region(self, region: str=None, start_year: int = 2020, end_year: int=2024) -> str:
         start_year_str = f"{start_year}-01-01"
         end_year_str = f"{end_year}-12-01"
-        region_lower = region.lower().replace(" ", "-")
+        
+        FILTER_CLAUSE = f"""    
+        FILTER ( ?refPeriodStart >= "{start_year_str}"^^xsd:date  &&
+                     ?refPeriodStart <= "{end_year_str}"^^xsd:date
+                    )
+        """
+        if region:
+            region_lower = region.lower().replace(" ", "-")
+            FILTER_CLAUSE = f"""    
+        FILTER ( ?refPeriodStart >= "{start_year_str}"^^xsd:date  &&
+                     ?refPeriodStart <= "{end_year_str}"^^xsd:date && 
+                     ?refRegion IN (<http://landregistry.data.gov.uk/id/region/{region_lower}>)
+                    )
+        """
 
         query = f"""
             {self._SELECT_CLAUSE}
@@ -64,13 +80,7 @@ class SparqlQuery:
 
             {self._OPTIONAL_CLAUSE}
 
-            FILTER ( ?refPeriodStart >= "{start_year_str}"^^xsd:date  &&
-                     ?refPeriodStart <= "{end_year_str}"^^xsd:date  &&
-                    ?refRegion IN (
-                    <http://landregistry.data.gov.uk/id/region/{region_lower}>
-                    )
-                    
-                    )
+            {FILTER_CLAUSE}
             
             }}"""
         return query
@@ -157,6 +167,63 @@ class SparqlQuery:
             except:
                 df[col]= df[col]
         return df
+    
+
+    def _fetch_hpi_regions(self)->pd.DataFrame:
+        """Fetches the list of regions from the SPARQL endpoint.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the regions and their URIs.
+        """
+        query = """
+
+        SELECT DISTINCT ?refRegion ?regionLabel ?regionType
+        WHERE {
+            ?_about ukhpi:refPeriodStart ?refPeriodStart ;
+                    ukhpi:refRegion ?refRegion .
+
+            OPTIONAL { ?refRegion rdfs:label ?regionLabel }
+            OPTIONAL { ?refRegion rdf:type ?regionType }
+
+            
+        }
+        ORDER BY ?refRegion
+
+        """
+
+        results = self.fetch_sparql_query(query)
+        df = self.make_data_from_results(results)
+        hpi_regions = (
+                    df.
+                    assign(
+                        ref_region_keyword = df["ref_region"].str.split("/").str[-1],
+                        ref_region_type_keyword = df["region_type"].str.split("/").str[-1]
+                    )
+                )
+        return hpi_regions
+    
+    @property
+    def HPI_REGIONS(self)->pd.DataFrame:
+        if self._hpi_regions is None:
+
+            file = FileVersion(base_path=Path(__file__).resolve().parent/"data", 
+                            file_name="hpi_regions_", 
+                            extension="csv")
+            file_path = file.latest_file_path
+            if file_path:
+                data = Dataset(file_path = file_path).load_data()
+            else:
+                data = file.load_latest_file(self, "_fetch_hpi_regions", False)
+            if not data:
+                return pd.DataFrame()
+
+            self._hpi_regions = pd.DataFrame(data)
+        return self._hpi_regions    
+    
+
+
+        
+        
     
 
 
