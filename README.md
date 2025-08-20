@@ -26,7 +26,6 @@ uk_house_price_index/
         split_from_camel.py # CamelCase to snake_case conversion
     data/                   # Cached data files
     notebooks/              # Example Jupyter notebooks
-```
 
 ## Getting Started
 
@@ -62,13 +61,8 @@ Apache License 2.0. See [LICENSE](LICENSE) for details.
 
 ## Author
 
-Dev Anbarasu
-```
+[Dev Anbarasu](https://github.com/daa2618)
 
-You can edit and expand this as needed for your project. for details.
-
-Author
-Dev Anbarasu
 
 
 
