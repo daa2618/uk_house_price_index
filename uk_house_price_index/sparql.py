@@ -10,6 +10,7 @@ if str(pardir) not in sys.path:
 from utils.split_from_camel import make_snake_from_camel
 from utils.data_loader import Dataset
 from utils.data_version import FileVersion
+from utils.helper import BasicLogger
 
 class SparqlQuery:
     _PREFIX = """
@@ -53,6 +54,7 @@ class SparqlQuery:
         self.endpoint_url = endpoint_url
         self.verbose = verbose
         self._hpi_regions = None
+        self._logger = BasicLogger(logger_name = "SPARQLQUERY", verbose=False, log_directory=None)
 
 
     def build_query_for_region(self, region: str=None, start_year: int = 2020, end_year: int=2024) -> str:
@@ -87,6 +89,7 @@ class SparqlQuery:
 
     
     def build_query_for_postcode(self, postcode:str)->str:
+        postcode = postcode.upper()
         return f"""
                 SELECT ?transx ?addr ?paon ?saon ?street ?town ?county ?postcode 
                     ?amount ?date ?category ?recordStatus ?propertyType ?estateType ?transactionId
@@ -125,7 +128,7 @@ class SparqlQuery:
 
         # Run the query
         if self.verbose:
-            print(f"Running SPARQL query: {sparql_query} from {self.endpoint_url}") 
+            self._logger.info(f"Running SPARQL query: {sparql_query} from {self.endpoint_url}") 
 
         sparql = SPARQLWrapper(self.endpoint_url)
         sparql.setQuery(sparql_query)
@@ -206,7 +209,7 @@ class SparqlQuery:
     def HPI_REGIONS(self)->pd.DataFrame:
         if self._hpi_regions is None:
 
-            file = FileVersion(base_path=Path(__file__).resolve().parent/"data", 
+            file = FileVersion(base_path=Path(__file__).resolve().parent/"data"/"region_data", 
                             file_name="hpi_regions_", 
                             extension="csv")
             file_path = file.latest_file_path
@@ -219,6 +222,37 @@ class SparqlQuery:
 
             self._hpi_regions = pd.DataFrame(data)
         return self._hpi_regions    
+    
+    def _get_price_paid_data_for_postcode(self, postcode:str)->pd.DataFrame:
+        """Fetches price paid data for a given postcode.
+
+        Args:
+            postcode (str): The postcode to fetch data for.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the price paid data.
+        """
+        query = self.build_query_for_postcode(postcode)
+        results = self.fetch_sparql_query(query)
+        return self.make_data_from_results(results)
+    
+
+    def get_price_paid_data_for_postcode(self, postcode:str)->pd.DataFrame:
+        file = FileVersion(base_path=Path(__file__).resolve().parent/"data"/"postcode_data", 
+                            file_name=f"price_paid_{postcode.upper().replace(' ', '')}_", 
+                            extension="csv")
+        file_path = file.latest_file_path
+        if file_path:
+            data = Dataset(file_path = file_path).load_data()
+        else:
+            data = file.load_latest_file(self, "_get_price_paid_data_for_postcode", False, postcode=postcode)
+        if not data:
+            return pd.DataFrame()
+
+        return pd.DataFrame(data)
+    
+
+    
     
 
 

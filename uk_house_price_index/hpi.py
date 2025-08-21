@@ -137,7 +137,7 @@ class HousePriceIndexPlots:
         self._hpi = HousePriceIndex()
         self._hpi_df = pd.DataFrame()
         self._file_name = f"hpi_{self._start_year}_{self._end_year}_{self._region}_"
-        self._data_path = Path(__file__).resolve().parent/"data"
+        self._data_path = Path(__file__).resolve().parent/"data"/"region_data"
         if not self.hpi_df.empty and not self.hpi_df is None:
             setattr(self, "PAYMENT_TYPES", ["cash", "mortgage"])
             setattr(self, "OCCUPANT_TYPES", ["first time buyer", "former owner occupier"])
