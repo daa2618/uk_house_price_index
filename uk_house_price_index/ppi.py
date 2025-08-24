@@ -35,7 +35,11 @@ class PricePaidData:
         if self._cleaned_df is None or self._cleaned_df.empty:
 
             results_df = self.data_for_postcode.sort_values("date")
-            results_df["paon"] = results_df["paon"].astype(float).astype(int)
+            try:
+                results_df["paon"] = results_df["paon"].astype(float).astype(int)
+            except:
+                results_df["paon"] = results_df["paon"].astype(str)
+
             results_df["amount"] = results_df["amount"].astype(float)
             results_df["date"] = pd.to_datetime(results_df["date"])
             results_df = results_df.assign(

@@ -37,7 +37,7 @@ class HousePriceIndex:
                   region:str="united-kingdom")->Optional[List[Dict[str,Any]]]:
 
         
-        region_key = region.replace(" ", "-").lower()
+        region_key = region.replace(' ', "-").lower()
 
         data_list = []
         start_year = int(start_year)
@@ -133,7 +133,7 @@ class HousePriceIndexPlots:
                  region:str="united-kingdom"):
         self._start_year = int(start_year) if start_year else 2020
         self._end_year = int(end_year) if end_year else 2024
-        self._region = (region.lower().replace(" ", "-"))
+        self._region = (region.lower().replace(' ', "-"))
         self._hpi = HousePriceIndex()
         self._hpi_df = pd.DataFrame()
         self._file_name = f"hpi_{self._start_year}_{self._end_year}_{self._region}_"
@@ -148,15 +148,15 @@ class HousePriceIndexPlots:
             _cols.extend(self.OCCUPANT_TYPES)
             _cols.extend(self.BUILD_TYPES)
 
-            property_types = [col.replace("average_price_", "").replace("_", " ")\
+            property_types = [col.replace("average_price_", "").replace('_', ' ')\
                                for col in average_cols if not any(word in \
-                                             col.replace("_", " ")\
+                                             col.replace('_', ' ')\
                                              for word in _cols) and \
                   col != "average_price"]
             
             setattr(self, "PROPERTY_TYPES", property_types)
         
-        self._sub_title = f"<br><sup>{self._region.replace("-", " ").upper()} - {self._start_year} to {self._end_year}</sup>"
+        self._sub_title = f"<br><sup>{self._region.replace('-', ' ').upper()} - {self._start_year} to {self._end_year}</sup>"
             
     
     def _fetch_hpi_df(self)->pd.DataFrame:
@@ -235,12 +235,12 @@ class HousePriceIndexPlots:
                      metric:str, 
                      metric_category:str, 
                      plot_type:str="Scatter")->go.Figure:
-        cat_upper = metric_category.upper().replace(" ", "_")
+        cat_upper = metric_category.upper().replace(' ', '_')
         
-        metric_lower = metric.lower().replace(" ", "_")
+        metric_lower = metric.lower().replace(' ', '_')
 
         cols = [metric_lower]
-        cols.extend([f"{metric_lower}_{x.lower().replace(" ", "_")}" for x in getattr(self, cat_upper)])
+        cols.extend([f"{metric_lower}_{x.lower().replace(' ', '_')}" for x in getattr(self, cat_upper)])
         df_melt = self.hpi_df.melt(value_vars = cols,
             id_vars = ["ref_period_start"],
             )
@@ -268,11 +268,11 @@ class HousePriceIndexPlots:
                                                 colors_dict=colors_dict, 
                                                 show_labels=True)
         
-        metric_title = metric.replace("_", " ").title()
+        metric_title = metric.replace('_', ' ').title()
 
         fig.update_xaxes(title = "Reference Period Start")
         fig.update_yaxes(title = metric_title)
-        return cat_plots._update_layout(fig, plot_title=f"{metric_title} by {cat_upper.replace("_", " ")} {self._sub_title}")
+        return cat_plots._update_layout(fig, plot_title=f"{metric_title} by {cat_upper.replace('_', ' ')} {self._sub_title}")
 
     def _plot_house_price_index(self, category:str)->go.Figure:
         return self._plot_metric("house_price_index", category)
