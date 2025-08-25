@@ -133,7 +133,7 @@ class HousePriceIndexPlots:
                  region:str="united-kingdom"):
         self._start_year = int(start_year) if start_year else 2020
         self._end_year = int(end_year) if end_year else 2024
-        self._region = (region.lower().replace(' ', "-"))
+        self._region = (region.lower().replace(' ', "-")) if region else "all"
         self._hpi = HousePriceIndex()
         self._hpi_df = pd.DataFrame()
         self._file_name = f"hpi_{self._start_year}_{self._end_year}_{self._region}_"
@@ -241,6 +241,11 @@ class HousePriceIndexPlots:
 
         cols = [metric_lower]
         cols.extend([f"{metric_lower}_{x.lower().replace(' ', '_')}" for x in getattr(self, cat_upper)])
+
+        cols = [col for col in cols if col in self.hpi_df.columns]
+        if not cols or self.hpi_df.empty:
+            print(f"No data found for {metric} by {metric_category}")
+            return go.Figure()
         df_melt = self.hpi_df.melt(value_vars = cols,
             id_vars = ["ref_period_start"],
             )
