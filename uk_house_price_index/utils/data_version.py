@@ -272,28 +272,63 @@ class FileVersion:
         else:
             return None
     
-    
-    def _fetch_dates_from_file_names(self)->Optional[List[datetime.datetime]]:
-        if not self.file_name.endswith("_"):
-            self.file_name = f"{self.file_name}_"
-        
-        file_name = re.sub("\\(", "\\(?", self.file_name)
-        file_name = re.sub("\\)", "\\)?", file_name)
-        dateFormatSub=re.sub(r"%m|%Y|%d|%H|%M|%S", r"[0-9]+", self.date_fmt)
-        dateFormatSub=re.sub(r"%b|%B", "[a-zA-Z]+", dateFormatSub)
 
-        pattern = re.compile(f"\\b{file_name}{dateFormatSub}{self.extension}")
-        #pattern = re.compile(f"\\b{file_name}[0-9]+{self.extension}")
-        latest_file_paths = [file_path for file_path in self.base_path.iterdir() if file_path.is_file() and pattern.findall(file_path.name)]
-        if latest_file_paths:
-            dates = [re.sub(f"{file_name}|\\{self.extension}", "", file_path.name) for file_path in latest_file_paths]
-            dates = [datetime.datetime.strptime(date, self.date_fmt) for date in dates]
-            dates.sort()
-            return dates
-        else:
-            raise DatesNotFound("No dates found for any of the matching file names in the directory")
+    def _fetch_dates_from_file_names(self) -> Optional[List[datetime.datetime]]:
+        """
+        Extracts dates from filenames in the base_path directory based on the expected
+        file_name prefix, date format, and extension.
 
-    
+        Returns:
+            A sorted list of datetime objects if matching files are found.
+            If no matches are found, falls back to the most recently modified file.
+        """
+
+        # Ensure prefix consistency
+        file_name = self.file_name.rstrip("_") + "_"
+
+        # Escape parentheses in case they exist in the filename
+        file_name = re.sub(r"([\(\)])", r"\\\1", file_name)
+
+        # Build a regex for the date format (convert strftime tokens into regex parts)
+        dateFormatSub = re.sub(r"%m|%Y|%d|%H|%M|%S", r"[0-9]{2,4}", self.date_fmt)
+        dateFormatSub = re.sub(r"%b|%B", r"[a-zA-Z]+", dateFormatSub)
+
+        # Final regex pattern – anchored to the start and end of filename
+        pattern = re.compile(rf"^{file_name}({dateFormatSub}){re.escape(self.extension)}$")
+
+        valid_dates = []
+        for file_path in self.base_path.iterdir():
+            if not file_path.is_file():
+                continue
+
+            match = pattern.match(file_path.name)
+            if match:
+                date_str = match.group(1)
+                try:
+                    parsed_date = datetime.datetime.strptime(date_str, self.date_fmt)
+                    valid_dates.append(parsed_date)
+                except ValueError:
+                    # Skip files that look like a match but don't actually parse
+                    continue
+
+        if valid_dates:
+            return sorted(valid_dates)
+
+        # 🚨 Fallback: use latest modified file if no dates found
+        try:
+            latest_file = max(
+                [f for f in self.base_path.iterdir() if f.is_file()],
+                key=lambda f: f.stat().st_mtime
+            )
+            # Use the modification time as a "date"
+            fallback_date = datetime.datetime.fromtimestamp(latest_file.stat().st_mtime)
+            return [fallback_date]
+        except ValueError:
+            # Directory empty
+            raise DatesNotFound(
+                f"No valid dates found for prefix '{self.file_name}' "
+                f"with format '{self.date_fmt}', and no files available in {self.base_path}"
+            )
     @property    
     def latest_file_path(self)->Optional[Path]:
         """
