@@ -35,7 +35,11 @@ class SparqlQuery:
             'percentageAnnualChangeNewBuild', 'percentageAnnualChangeSemiDetached', 'percentageAnnualChangeTerraced', 
             'percentageChange', 'percentageChangeDetached', 'percentageChangeExistingProperty', 'percentageChangeFlatMaisonette', 
             'percentageChangeNewBuild', 'percentageChangeSemiDetached', 'percentageChangeTerraced', 'refMonth', 
-            'refPeriodDuration', 'refPeriodStart', 'refRegion', 'salesVolume', 'type']
+            'refPeriodDuration', 'refPeriodStart', 'refRegion', 'salesVolume', 'salesVolumeExistingProperty',
+            'salesVolumeNewBuild', 'salesVolumeDetached',
+            'salesVolumeFlatMaisonette',
+            'salesVolumeSemiDetached',
+            'salesVolumeTerraced''type']
 
     # SELECT line
     _SELECT_CLAUSE = "SELECT DISTINCT\n  " + "\n  ".join(f"?{col}" for col in _COLUMNS)

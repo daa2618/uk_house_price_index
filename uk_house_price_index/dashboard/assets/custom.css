@@ -1,0 +1,25 @@
+/* Dark dropdown container */
+.dark-dropdown .Select-control {
+    background-color: #222 !important;
+    color: #f0f0f0 !important;
+    border: 1px solid #444 !important;
+}
+
+/* Dropdown menu background */
+.dark-dropdown .Select-menu-outer {
+    background-color: #222 !important;
+    border: 1px solid #444 !important;
+    color: #f0f0f0 !important;
+}
+
+/* Hover effect */
+.dark-dropdown .Select-option:hover {
+    background-color: #333 !important;
+    color: #ffffff !important;
+}
+
+/* Selected item */
+.dark-dropdown .Select-value {
+    color: #f0f0f0 !important;
+    background-color: #222 !important;
+}

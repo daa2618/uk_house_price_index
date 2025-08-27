@@ -235,6 +235,7 @@ class HousePriceIndexPlots:
                      metric:str, 
                      metric_category:str, 
                      plot_type:str="Scatter")->go.Figure:
+        
         cat_upper = metric_category.upper().replace(' ', '_')
         
         metric_lower = metric.lower().replace(' ', '_')
@@ -306,6 +307,9 @@ class HousePriceIndexPlots:
 
     def plot_sales_volume_by_payment_types(self)->go.Figure:
         return self._plot_sales_volume("PAYMENT_TYPES")
+    def plot_sales_volume_by_property_types(self)->go.Figure:
+        return self._plot_sales_volume("PROPERTY_TYPES")
+    
 
     def _plot_averages(self, avg_category:str)->go.Figure:
         return self._plot_metric("average_price", avg_category)
