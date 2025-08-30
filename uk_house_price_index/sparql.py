@@ -39,7 +39,7 @@ class SparqlQuery:
             'salesVolumeNewBuild', 'salesVolumeDetached',
             'salesVolumeFlatMaisonette',
             'salesVolumeSemiDetached',
-            'salesVolumeTerraced''type']
+            'salesVolumeTerraced', 'salesVolumeCash', 'salesVolumeMortgage', 'type']
 
     # SELECT line
     _SELECT_CLAUSE = "SELECT DISTINCT\n  " + "\n  ".join(f"?{col}" for col in _COLUMNS)
