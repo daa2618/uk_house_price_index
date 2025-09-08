@@ -1,8 +1,8 @@
 from pathlib import Path
 from helper_tools.utils.sys_path_insert import add_to_syspath #type:ignore
-add_to_syspath(Path(__file__).parent)
+add_to_syspath(Path(__file__).parent.parent)
 from helper_tools.request_soup_data.db_ops.more_sqlite.sqlite_db import Sqlite_DB #type:ignore
-import helper
+from postcode_lookups import helper
 import pandas as pd
 from typing import Optional
 
@@ -80,6 +80,7 @@ def load_aylesbury_postcodes()->Optional[pd.DataFrame]:
     data_dir = Path(__file__).parent/"data"
     aylesbury_postcodes_file = data_dir/"aylesbury_postcodes.csv"
     if not aylesbury_postcodes_file.exists():
+        print("CSV fle not found")
         return make_aylesbury_postcodes()
     
     aylesbury_postcodes_df = pd.read_csv(aylesbury_postcodes_file, low_memory=False)
