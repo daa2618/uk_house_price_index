@@ -142,37 +142,39 @@ class SparqlQuery:
         return results
 
     @staticmethod
-    def make_data_from_results(results:dict)->pd.DataFrame:
+    def make_data_from_results(results: dict) -> pd.DataFrame:
         variables = results.get("head", {}).get("vars", [])
         bindings = results.get("results", {}).get("bindings", [])
 
         if not bindings:
-            return pd.DataFrame(columns=variables)
+            return pd.DataFrame(columns=[make_snake_from_camel(v) for v in variables])
 
-        data = []
+        # 1. Create the list of dicts
+        data = [{k: v.get("value") for k, v in result.items()} for result in bindings]
 
-        if not variables:
-            return pd.DataFrame(columns=variables)
-
-        data = []
-        for result in bindings:
-            row = {k: v.get("value") for k, v in result.items()}
-            data.append(row)
-
+        # 2. Initialize DataFrame
         df = pd.DataFrame(data)
         df.columns = [make_snake_from_camel(col) for col in df.columns]
-        if "ref_period_start" in df.columns:
-            df["ref_period_start"] = pd.to_datetime(df["ref_period_start"])
-        if "ref_period_end" in df.columns:
-            df["ref_period_end"] = pd.to_datetime(df["ref_period_end"])
-        if "date" in df.columns:
-            df["date"] = pd.to_datetime(df["date"])
 
+        # 3. Handle Dates using .loc to ensure single-step assignment
+        date_cols = ["ref_period_start", "ref_period_end", "date"]
+        for col in date_cols:
+            if col in df.columns:
+                df.loc[:, col] = pd.to_datetime(df[col])
+
+        # 4. Handle Numeric Conversion (Future-proof version)
         for col in df.columns:
-            try:
-                df[col] = df[col].astype(float)
-            except:
-                df[col]= df[col]
+            if col not in date_cols:
+                try:
+                    # Attempt conversion - if it contains non-numeric strings, 
+                    # this will raise a ValueError or TypeError
+                    converted = pd.to_numeric(df[col], errors='raise')
+                    df.loc[:, col] = converted
+                except (ValueError, TypeError):
+                    # If conversion fails, it's a string column (like a URI or Label)
+                    # We just leave it as is.
+                    continue
+
         return df
     
 

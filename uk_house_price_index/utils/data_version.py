@@ -9,14 +9,14 @@ try:
     if parent_dir_str not in sys.path:
         sys.path.insert(0, parent_dir_str)
     
-    from helper import BasicLogger
+    from helper import BasicLogger, logging
     from data_loader import Dataset
     
 except ImportError as e:
     print(f"Failed to import required tools\n{str(e)}")
 
 #_bl = ErrorOnlyLogger(verbose = False, log_directory=None, logger_name = "DATA VERSION")
-_bl = BasicLogger(verbose = False, log_directory=None, logger_name = "DATA_VERSION")
+
 class DatesNotFound(Exception):
     pass
 
@@ -42,13 +42,17 @@ class FileVersion:
                  file_name:str,
                 extension:str,
                 date_fmt:str="%m%d%Y", 
-                
+                debug:bool=False
                 #**kwargs
                 ):
         self.base_path = Path(base_path)
         self.file_name = f"{file_name}_" if not file_name.endswith("_") else file_name
         self.extension = f".{extension}" if not extension.startswith(".") else extension
         self.date_fmt = date_fmt
+        self.debug = debug
+        self._bl = BasicLogger(verbose = False,
+                        log_level=logging.DEBUG if self.debug else logging.INFO,
+                        log_directory=None, logger_name = "DATA_VERSION")
         #super().__init__(**kwargs)
     
     
@@ -184,7 +188,7 @@ class FileVersion:
                     try:
                         file_path_to_remove.unlink()
                     except Exception as e:
-                        _bl.error(f"Failed to remove file '{file}' from {self.base_path}", e)
+                        self._bl.error(f"Failed to remove file '{file}' from {self.base_path}", e)
                         continue
                     #os.remove(os.path.join(self.base_path, file))
             try:
@@ -239,7 +243,7 @@ class FileVersion:
             Exception: If there's an issue converting the extracted date string to a datetime object.  Note that the specific exception type isn't caught, making debugging more difficult.  Consider improving exception handling to provide more specific error messages.
         """
         self.folder_exists()
-        _bl.info(f"\tData folder: '{self.base_path}'\n\tFilename: '{self.file_name}'\n\tExtension: '{self.extension}'")
+        self._bl.debug(f"\tData folder: '{self.base_path}'\n\tFilename: '{self.file_name}'\n\tExtension: '{self.extension}'")
 
         #latest_file=[x for x in os.listdir(self.base_path) if self.file_name in x and x.endswith(self.extension)][-1]
         if not self.file_name.endswith("_"):
@@ -308,7 +312,7 @@ class FileVersion:
             Exception: If there's an issue converting the extracted date string to a datetime object.  Note that the specific exception type isn't caught, making debugging more difficult.  Consider improving exception handling to provide more specific error messages.
         """
         self.folder_exists()
-        _bl.info(f"\tData folder: '{self.base_path}'\n\tFilename: '{self.file_name}'\n\tExtension: '{self.extension}'")
+        self._bl.debug(f"\tData folder: '{self.base_path}'\n\tFilename: '{self.file_name}'\n\tExtension: '{self.extension}'")
 
         #latest_file=[x for x in os.listdir(self.base_path) if self.file_name in x and x.endswith(self.extension)][-1]
         try:
@@ -319,11 +323,11 @@ class FileVersion:
             fp = f"{self.file_name}{latest_date_str}{self.extension}"
             date=datetime.datetime.strftime(latest_date, "%d %b %Y")
 
-            _bl.info(f"\n\tThe file was downloaded on '{date}'\n")
+            self._bl.debug(f"\n\tThe file was downloaded on '{date}'\n")
 
             return self.base_path.joinpath(fp)#os.path.abspath(os.path.join(self.base_path, fp))
         except Exception as e:
-            _bl.error("Failed to get latest file path", e)
+            self._bl.error("Failed to get latest file path", e)
             return None
 
 
@@ -370,7 +374,7 @@ class FileVersion:
             latest_file = self.latest_file_path
             return Dataset(file_path=latest_file).load_data()
         except Exception as e:
-            _bl.error("Failed to load latest file", e)
+            self._bl.error("Failed to load latest file", e)
 
             WriteFile(data_to_write=getattr(class_name, func)(**kwargs),
                          base_path=self.base_path,

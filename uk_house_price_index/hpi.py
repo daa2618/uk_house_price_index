@@ -27,11 +27,11 @@ class HousePriceIndex:
         self._hpi_regions = sparqlquery.HPI_REGIONS
         if not self._hpi_regions.empty or not self._hpi_regions is None:
             setattr(self, "REGION_TYPES", list(self._hpi_regions["ref_region_type_keyword"].unique()))
-    
+        self._data_path = Path(__file__).resolve().parent/"data"/"hpi_data"
         pass
     
     #@staticmethod
-    def _fetch_hpi(self, 
+    def _fetch_hpi_old(self, 
                   start_year:Union[str,int], 
                   end_year:Optional[Union[str,int]]=None, 
                   region:str="united-kingdom")->Optional[List[Dict[str,Any]]]:
@@ -60,7 +60,7 @@ class HousePriceIndex:
 
         return data_list
     
-    def fetch_hpi(self, 
+    def _fetch_hpi(self, 
                   start_year:Union[str,int], 
                   end_year:Optional[Union[str,int]]=None, 
                   region:str="united-kingdom")->pd.DataFrame:
@@ -69,10 +69,30 @@ class HousePriceIndex:
         query = sparqlquery.build_query_for_region(region, start_year, end_year)
         results = sparqlquery.fetch_sparql_query(query)
         return sparqlquery.make_data_from_results(results)
+    
+    def fetch_hpi(self, 
+                  start_year:Union[str,int], 
+                  end_year:Optional[Union[str,int]]=None, 
+                  region:str="united-kingdom"):
+        end_year = end_year if end_year else start_year
+        region_key = region.replace(' ', "-").replace("-", "_").lower()
+        file = FileVersion(
+            base_path = self._data_path,
+            file_name = f"{region_key}_{start_year}_{end_year}_hpi",
+            extension = "csv"
+        )
+        data = file.load_latest_file(self, 
+                    "_fetch_hpi", 
+                    start_year=start_year, 
+                    end_year=end_year, 
+                    region=region,
+                    check_version=False)
+        
+        return pd.DataFrame(data)
 
     @staticmethod
 
-    def select_values(raw_data_list:List[Dict[str,Any]])->Optional[List[Dict[str,Any]]]:
+    def _select_values(raw_data_list:List[Dict[str,Any]])->Optional[List[Dict[str,Any]]]:
         
         
         if not raw_data_list:
@@ -112,7 +132,7 @@ class HousePriceIndex:
         return selected
     @staticmethod
 
-    def make_df(selected_values:List[Dict[str,Any]])->pd.DataFrame:
+    def _make_df(selected_values:List[Dict[str,Any]])->pd.DataFrame:
         if not selected_values:
             return pd.DataFrame()
         try:

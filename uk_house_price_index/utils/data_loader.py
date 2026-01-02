@@ -6,14 +6,16 @@ try:
     if parent_dir_str not in sys.path:
         sys.path.insert(0, parent_dir_str)
     
-    from helper import BasicLogger
+    from helper import BasicLogger, logging
     from response import Response
     #from utils.verbose_printer import _print
     
 except ImportError as e:
     print(f"Failed to import required tools\n{str(e)}")
 
-_bl = BasicLogger(verbose=False, log_directory=None, logger_name="DATA_LOADER")
+_bl = BasicLogger(verbose=False, 
+                    log_directory=None, 
+                    logger_name="DATA_LOADER")
 
 import os, re, json, pandas as pd, io
 
@@ -33,7 +35,7 @@ class Dataset:
     """
     provide doc_url for an url or the file_path to a file
     """
-    def __init__(self, **kwargs):
+    def __init__(self, debug:bool=False,**kwargs):
         """Initializes the object with optional parameters.
 
         Args:
@@ -46,6 +48,11 @@ class Dataset:
         self.file_path = kwargs.get("file_path")
         self._supported_extensions = ["csv", "ods", "xlsx", "xls", "json", "pdf",
                                      "text/csv", "geojson"]
+        self.debug = debug
+        self._bl = BasicLogger(verbose=False,
+        log_level = logging.DEBUG if debug else logging.INFO, 
+        log_directory=None, 
+        logger_name="DATA_LOADER")
     
     def _response(self, **kwargs):
         if self.doc_url:
@@ -117,8 +124,8 @@ class Dataset:
                 dat = csv.DictReader(f)
                 col_names = dat.fieldnames
                 if col_names:
-                    _bl.info(f"columns: {col_names}")
-                    _bl.info("Converting the response into json format")
+                    self._bl.debug(f"columns: {col_names}")
+                    self._bl.debug("Converting the response into json format")
                 content = [{col.replace(" ", "_").lower() : row[col] for col in col_names} for row in dat]
                 non_empty_content = [x for x in content if x]
             if not non_empty_content:
@@ -138,8 +145,8 @@ class Dataset:
             with open(self.file_path, "r") as f:
                 dat = csv.DictReader(f)
                 col_names = dat.fieldnames
-                _bl.info(f"columns: {col_names}")
-                _bl.info("Converting the response into json format")
+                self._bl.debug(f"columns: {col_names}")
+                self._bl.debug("Converting the response into json format")
                 content = [{col.replace(" ", "_").lower() : row[col] for col in col_names} for row in dat]
         
         
@@ -154,7 +161,7 @@ class Dataset:
             content = self.file_path
         
         xls = pd.ExcelFile(content)
-        _bl.info(f"Sheets in this file: {xls.sheet_names}")
+        self._bl.debug(f"Sheets in this file: {xls.sheet_names}")
         out = {}
         for sheet in xls.sheet_names:
             out[sheet] = pd.read_excel(xls, sheet, engine="odf")
@@ -169,7 +176,7 @@ class Dataset:
         
         xls = pd.ExcelFile(content)
         out = {}
-        _bl.info(f"Sheets in this file: {xls.sheet_names}")
+        self._bl.debug(f"Sheets in this file: {xls.sheet_names}")
         for sheet in xls.sheet_names:
             out[sheet] = pd.read_excel(xls, sheet)
         return out
@@ -183,10 +190,10 @@ class Dataset:
                     path = urlparser.urlsplit(self.doc_url).path
                     if "github" in self.doc_url:
                         doc_url = re.sub("blob", "refs/heads", urlparser.urljoin("https://raw.githubusercontent.com", path))
-                        _bl.info(f"{doc_url=}")
+                        self._bl.debug(f"{doc_url=}")
                         responseDict = json.loads(self._response(url=doc_url).content)
                 except Exception as e:
-                    _bl.error(f"Failed to load data : \n\t{e}")
+                    self._bl.error(f"Failed to load data : \n\t{e}")
                     pass
         elif self.file_path:
             self._assert_file_path
@@ -203,7 +210,7 @@ class Dataset:
                 content = io.BytesIO(self._response().content)
                 #return pdfplumber.open(content)
             except Exception as e:
-                _bl.error(f"Error obtaining pdf from url\n\t{e}")
+                self._bl.error(f"Error obtaining pdf from url\n\t{e}")
         
         elif self.file_path:
             self._assert_file_path
@@ -211,7 +218,7 @@ class Dataset:
                 pass
                 #return pdfplumber.open(self.file_path)
             except Exception as e:
-                _bl.error(f"Failed to load pdf from filepath\n\t{e}")
+                self._bl.error(f"Failed to load pdf from filepath\n\t{e}")
     
     @property
     def _load_geojson(self):
@@ -220,12 +227,12 @@ class Dataset:
             try:
                 return gpd.read_file(self.doc_url)
             except Exception as e:
-                _bl.error("Failed to load geojson from url\n\t{e}")
+                self._bl.error("Failed to load geojson from url\n\t{e}")
         elif self.file_path:
             try:
                 return gpd.read_file(self.file_path)
             except Exception as e:
-                _bl.error("Failed to load geojson from file\n\t{e}")
+                self._bl.error("Failed to load geojson from file\n\t{e}")
 
     @property
     def _load_for_extension(self):
@@ -237,34 +244,34 @@ class Dataset:
                 try:
                     return self._load_csv
                 except Exception as e:
-                    _bl.error("Failed to load from csv",e)
+                    self._bl.error("Failed to load from csv",e)
             elif extension.endswith("ods") or "ods" in extension:
                 try:
                     return self._load_ods
                 except Exception as e:
-                    _bl.error("Failed to load from ODS",e)
+                    self._bl.error("Failed to load from ODS",e)
             elif extension.endswith("xlsx") or extension.endswith("xls") or \
                 "xlsx" in extension or "xls" in extension:
                 try:
                     return self._load_excel
                 except Exception as e:
-                    _bl.error("Failed to load from excel",e)
+                    self._bl.error("Failed to load from excel",e)
             elif extension.endswith("json") or "json" in extension:
                 try:
                     return self._load_json
                 except Exception as e:
-                    _bl.error("Failed to load from json",e)
+                    self._bl.error("Failed to load from json",e)
             elif extension.endswith("pdf") or "pdf" in extension:
                 try:
                     return self._load_pdf
                 except Exception as e:
-                    _bl.error("Failed to load from pdf",e)
+                    self._bl.error("Failed to load from pdf",e)
             elif extension.endswith("geojson") or "geojson" in extension or \
                 "geo+json" in extension:
                 try:
                     return self._load_geojson
                 except Exception as e:
-                    _bl.error("Failed to load from geojson",e)
+                    self._bl.error("Failed to load from geojson",e)
     
 
     def load_data(self):
@@ -295,7 +302,7 @@ class Dataset:
                 return self._load_for_extension
             
         except Exception as e:
-            _bl.error("Failed to load data\nReason:", e)
+            self._bl.error("Failed to load data\nReason:", e)
             return None
         
 
