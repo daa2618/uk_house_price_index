@@ -8,7 +8,7 @@ try:
     if parent_dir_str not in sys.path:
         sys.path.insert(0, parent_dir_str)
     
-    from helper import BasicLogger
+    from helper import BasicLogger, logging
     from data_version import FileVersion, BasicLogger
     #from utils.verbose_printer import _print
     
@@ -18,7 +18,7 @@ except ImportError as e:
 
 from datetime import datetime
 from json import JSONEncoder
-_bl = BasicLogger(verbose = False, log_directory=None, logger_name="DATA WRITER")
+
 
 
 class DateTimeEncoder(JSONEncoder):
@@ -41,9 +41,13 @@ class WriteFile(FileVersion):
                   reusing existing file versioning logic.  Example kwargs might include file path, 
                   version number, etc.
     """
-    def __init__(self, data_to_write, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, data_to_write, debug:bool=False, **kwargs):
+        super().__init__(debug=debug, **kwargs)
         self.data_to_write = data_to_write
+        self.debug = debug
+        self._bl = BasicLogger(verbose = False, 
+        log_level = logging.DEBUG if debug else logging.INFO,
+        log_directory=None, logger_name="DATA WRITER")
         
     def _write_file_to_disk(self, check_version:bool)->None:
         """
@@ -72,7 +76,7 @@ class WriteFile(FileVersion):
                 extension = f".{self.extension}"
             file_path = os.path.join(self.base_path, self.make_file_name())
 
-            _bl.info(f"Writing the file at {(os.path.abspath(file_path))}....")
+            self._bl.debug(f"Writing the file at {(os.path.abspath(file_path))}....")
             for file in os.listdir(self.base_path):
                 if file == self.make_file_name():
                     os.remove(file_path)
@@ -84,14 +88,14 @@ class WriteFile(FileVersion):
                         f.write(json.dumps(self.data_to_write,indent=4,cls=DateTimeEncoder))
 
                 except Exception as e:
-                    _bl.error(f"Unable to write the content as json", e)
+                    self._bl.error(f"Unable to write the content as json", e)
                     #raise TypeError(f"The file to write is of type {type(self.data_to_write)}.\nTherefore, cannot be saved as a json file")
 
             elif "csv" in self.extension:
                 try:
                     self.data_to_write.to_csv(file_path, index=False)
                 except Exception as e:
-                    _bl.error(f"Unable to write the content as csv", e)
+                    self._bl.error(f"Unable to write the content as csv", e)
                     #raise TypeError(f"The file to write is of type {type(self.data_to_write)}.\nTherefore, cannot be saved as a csv file")
 
             elif "pdf" in self.extension:
@@ -99,21 +103,21 @@ class WriteFile(FileVersion):
                     with open(file_path, "wb") as f:
                         f.write(self.data_to_write)
                 except Exception as e:
-                    _bl.error(f"Unable to write the content as pdf", e)
+                    self._bl.error(f"Unable to write the content as pdf", e)
 
             elif "txt" in self.extension:
                 try:
                     with open(file_path, mode = "w", encoding="utf-8") as f:
                         f.write(self.data_to_write)
                 except Exception as e:
-                    _bl.error(f"Unable to write the content as txt", e)
+                    self._bl.error(f"Unable to write the content as txt", e)
             
             elif "xls" in self.extension:
                 df = self.data_to_write
                 try:
                     df.to_excel(file_path, index=False)
                 except Exception as e:
-                    _bl.error("Unable to write the content as an excel file", e)
+                    self._bl.error("Unable to write the content as an excel file", e)
 
 
             return None
@@ -121,9 +125,9 @@ class WriteFile(FileVersion):
     def write_file_to_disk(self, check_version:bool)->None:
         try:
             self._write_file_to_disk(check_version=check_version)
-            _bl.info(f"The file has been written")
+            self._bl.debug(f"The file has been written")
         except Exception as e:
-            _bl.error("Data Writer failed", e)
+            self._bl.error("Data Writer failed", e)
         
     
 

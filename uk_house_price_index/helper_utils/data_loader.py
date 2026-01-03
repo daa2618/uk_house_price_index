@@ -193,7 +193,7 @@ class Dataset:
                         self._bl.debug(f"{doc_url=}")
                         responseDict = json.loads(self._response(url=doc_url).content)
                 except Exception as e:
-                    self._bl.error(f"Failed to load data : \n\t{e}")
+                    self._bl.debug(f"Failed to load data : \n\t{e}")
                     pass
         elif self.file_path:
             self._assert_file_path
@@ -210,7 +210,7 @@ class Dataset:
                 content = io.BytesIO(self._response().content)
                 #return pdfplumber.open(content)
             except Exception as e:
-                self._bl.error(f"Error obtaining pdf from url\n\t{e}")
+                self._bl.debug(f"Error obtaining pdf from url\n\t{e}")
         
         elif self.file_path:
             self._assert_file_path
@@ -218,7 +218,7 @@ class Dataset:
                 pass
                 #return pdfplumber.open(self.file_path)
             except Exception as e:
-                self._bl.error(f"Failed to load pdf from filepath\n\t{e}")
+                self._bl.debug(f"Failed to load pdf from filepath\n\t{e}")
     
     @property
     def _load_geojson(self):
@@ -227,12 +227,12 @@ class Dataset:
             try:
                 return gpd.read_file(self.doc_url)
             except Exception as e:
-                self._bl.error("Failed to load geojson from url\n\t{e}")
+                self._bl.debug("Failed to load geojson from url\n\t{e}")
         elif self.file_path:
             try:
                 return gpd.read_file(self.file_path)
             except Exception as e:
-                self._bl.error("Failed to load geojson from file\n\t{e}")
+                self._bl.debug("Failed to load geojson from file\n\t{e}")
 
     @property
     def _load_for_extension(self):
@@ -244,34 +244,34 @@ class Dataset:
                 try:
                     return self._load_csv
                 except Exception as e:
-                    self._bl.error("Failed to load from csv",e)
+                    self._bl.debug("Failed to load from csv",e)
             elif extension.endswith("ods") or "ods" in extension:
                 try:
                     return self._load_ods
                 except Exception as e:
-                    self._bl.error("Failed to load from ODS",e)
+                    self._bl.debug("Failed to load from ODS",e)
             elif extension.endswith("xlsx") or extension.endswith("xls") or \
                 "xlsx" in extension or "xls" in extension:
                 try:
                     return self._load_excel
                 except Exception as e:
-                    self._bl.error("Failed to load from excel",e)
+                    self._bl.debug("Failed to load from excel",e)
             elif extension.endswith("json") or "json" in extension:
                 try:
                     return self._load_json
                 except Exception as e:
-                    self._bl.error("Failed to load from json",e)
+                    self._bl.debug("Failed to load from json",e)
             elif extension.endswith("pdf") or "pdf" in extension:
                 try:
                     return self._load_pdf
                 except Exception as e:
-                    self._bl.error("Failed to load from pdf",e)
+                    self._bl.debug("Failed to load from pdf",e)
             elif extension.endswith("geojson") or "geojson" in extension or \
                 "geo+json" in extension:
                 try:
                     return self._load_geojson
                 except Exception as e:
-                    self._bl.error("Failed to load from geojson",e)
+                    self._bl.debug("Failed to load from geojson",e)
     
 
     def load_data(self):
@@ -302,7 +302,7 @@ class Dataset:
                 return self._load_for_extension
             
         except Exception as e:
-            self._bl.error("Failed to load data\nReason:", e)
+            self._bl.debug("Failed to load data\nReason:", e)
             return None
         
 
@@ -351,7 +351,7 @@ class PostProcess:
                 df_copy[col] = df_copy[col].astype(d_type_lower)
                 _bl.info(f"Column: '{col}' converted to data type '{d_type}'.")
             except:
-                _bl.error(f"Processing failed for column: '{col}'. Retaining original data type")
+                _bl.debug(f"Processing failed for column: '{col}'. Retaining original data type")
                 df_copy[col] = df_copy[col]
         
         return df_copy

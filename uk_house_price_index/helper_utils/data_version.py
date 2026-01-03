@@ -188,7 +188,7 @@ class FileVersion:
                     try:
                         file_path_to_remove.unlink()
                     except Exception as e:
-                        self._bl.error(f"Failed to remove file '{file}' from {self.base_path}", e)
+                        self._bl.debug(f"Failed to remove file '{file}' from {self.base_path}", e)
                         continue
                     #os.remove(os.path.join(self.base_path, file))
             try:
@@ -327,7 +327,7 @@ class FileVersion:
 
             return self.base_path.joinpath(fp)#os.path.abspath(os.path.join(self.base_path, fp))
         except Exception as e:
-            self._bl.error("Failed to get latest file path", e)
+            self._bl.debug("Failed to get latest file path", e)
             return None
 
 
@@ -374,7 +374,7 @@ class FileVersion:
             latest_file = self.latest_file_path
             return Dataset(file_path=latest_file).load_data()
         except Exception as e:
-            self._bl.error("Failed to load latest file", e)
+            self._bl.debug("Failed to load latest file", e)
 
             WriteFile(data_to_write=getattr(class_name, func)(**kwargs),
                          base_path=self.base_path,

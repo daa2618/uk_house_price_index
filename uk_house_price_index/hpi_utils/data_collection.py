@@ -8,6 +8,7 @@ from src.hpi import HousePriceIndex
 from src.sparql import SparqlQuery
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas as pd
 class DataCollection:
     def __init__(self, start_year:int=1990, end_year:int=2025):
         self.hpi = HousePriceIndex()
@@ -36,15 +37,18 @@ class DataCollection:
             for future in progress:
                 try:
                     data = future.result()
-                    if data:
-                        collected_data.extend(data)
+                    if isinstance(data, pd.DataFrame) and not data.empty:
+                        collected_data.append(data)
                 except Exception as e:
                     failed += 1
                     continue
         print(f"Failed to collect data for {failed} regions")
         print(f"Collected data for {n_regions - failed} regions")
         print("#"*100)
-        return collected_data                        
+        
+        if collected_data:
+            return pd.concat(collected_data, ignore_index=True)
+        return pd.DataFrame()
 
         
 
