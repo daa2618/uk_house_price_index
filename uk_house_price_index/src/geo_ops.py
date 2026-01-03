@@ -2,13 +2,13 @@ from __future__ import annotations
 from pathlib import Path
 import geopandas as gpd
 import pandas as pd
-pardir = Path(__file__).parent
+pardir = Path(__file__).parent.parent
 import sys
 if str(pardir) not in sys.path:
     sys.path.insert(0, str(pardir))
 
-from utils.data_version import FileVersion
-from hpi import HousePriceIndex
+from helper_utils.data_version import FileVersion
+from .hpi import HousePriceIndex
 import plotly.express as px
 from typing import Dict, List
 
@@ -16,7 +16,7 @@ class GeoOps:
     
     def __init__(self, map_style:str="open-street-map"):
         self._ref_geo_df = pd.DataFrame()
-        self.file_path = Path(__file__).parent / "data" / "geo_data" / "georef_united_kingdom_county_unitary_authority.geojson"
+        self.file_path = pardir / "data" / "geo_data" / "georef_united_kingdom_county_unitary_authority.geojson"
         self.file_path.parent.mkdir(exist_ok=True, parents=True)
         self.hpi_by_geo_dict = {}
         self.supported_geo_types = ["ctry_name", "rgn_name", "ctyua_name"]

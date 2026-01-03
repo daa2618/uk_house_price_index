@@ -2,15 +2,15 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 from typing import Dict, List,Any
 import pandas as pd
 from pathlib  import Path
-pardir = Path(__file__).parent
+pardir = Path(__file__).parent.parent
 import sys
 if str(pardir) not in sys.path:
     sys.path.insert(0, str(pardir))
 
-from utils.split_from_camel import make_snake_from_camel
-from utils.data_loader import Dataset
-from utils.data_version import FileVersion
-from utils.helper import BasicLogger
+from helper_utils.split_from_camel import make_snake_from_camel
+from helper_utils.data_loader import Dataset
+from helper_utils.data_version import FileVersion
+from helper_utils.helper import BasicLogger
 
 class SparqlQuery:
     _PREFIX = """
@@ -215,7 +215,7 @@ class SparqlQuery:
     def HPI_REGIONS(self)->pd.DataFrame:
         if self._hpi_regions is None:
 
-            file = FileVersion(base_path=Path(__file__).resolve().parent/"data"/"region_data", 
+            file = FileVersion(base_path=pardir/"data"/"region_data", 
                             file_name="hpi_regions_", 
                             extension="csv")
             file_path = file.latest_file_path
@@ -244,7 +244,7 @@ class SparqlQuery:
     
 
     def get_price_paid_data_for_postcode(self, postcode:str)->pd.DataFrame:
-        file = FileVersion(base_path=Path(__file__).resolve().parent/"data"/"postcode_data", 
+        file = FileVersion(base_path=pardir/"data"/"postcode_data", 
                             file_name=f"price_paid_{postcode.upper().replace(' ', '')}_", 
                             extension="csv")
         file_path = file.latest_file_path

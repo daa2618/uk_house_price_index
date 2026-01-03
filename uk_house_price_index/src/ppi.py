@@ -1,6 +1,7 @@
+from __future__ import annotations
 import pandas as pd
-from sparql import SparqlQuery
-from hpi import cat_plots, go
+from .sparql import SparqlQuery
+from .hpi import cat_plots, go
 
 sparq = SparqlQuery()
 

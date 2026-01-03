@@ -1,19 +1,20 @@
+from __future__ import annotations 
 from pathlib  import Path
-pardir = Path(__file__).parent
+pardir = Path(__file__).parent.parent
 import sys
 if str(pardir) not in sys.path:
     sys.path.insert(0, str(pardir))
 
-from utils.split_from_camel import make_snake_from_camel
+from helper_utils.split_from_camel import make_snake_from_camel
 import pandas as pd
 import copy
 from typing import Union, Optional, List, Dict, Any
-from utils.response import Response
-from utils.basic_plots import CategoryPlots, go, px
-from utils.plotly_imports import categorical_color_combinations
-from utils.data_loader import Dataset
-from utils.data_version import FileVersion
-from sparql import SparqlQuery
+from helper_utils.response import Response
+from helper_utils.basic_plots import CategoryPlots, go, px
+from helper_utils.plotly_imports import categorical_color_combinations
+from helper_utils.data_loader import Dataset
+from helper_utils.data_version import FileVersion
+from src.sparql import SparqlQuery
 
 cat_plots = CategoryPlots()
 sparqlquery = SparqlQuery()
@@ -27,7 +28,7 @@ class HousePriceIndex:
         self._hpi_regions = sparqlquery.HPI_REGIONS
         if not self._hpi_regions.empty or not self._hpi_regions is None:
             setattr(self, "REGION_TYPES", list(self._hpi_regions["ref_region_type_keyword"].unique()))
-        self._data_path = Path(__file__).resolve().parent/"data"/"hpi_data"
+        self._data_path = pardir / "data" / "hpi_data"
         pass
     
     #@staticmethod
@@ -81,7 +82,13 @@ class HousePriceIndex:
             file_name = f"{region_key}_{start_year}_{end_year}_hpi",
             extension = "csv"
         )
-        data = file.load_latest_file(self, 
+
+        file_path = file.latest_file_path
+        if file_path:
+            data = Dataset(file_path = file_path).load_data()
+            
+        else:
+            data = file.load_latest_file(self, 
                     "_fetch_hpi", 
                     start_year=start_year, 
                     end_year=end_year, 
