@@ -209,3 +209,5 @@ __marimo__/
 
 notebooks
 data
+
+__pycache__

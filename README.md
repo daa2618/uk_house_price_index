@@ -29,12 +29,12 @@ The UK Land Registry publishes the UK House Price Index (HPI) via SPARQL and RES
 
 ## Features
 
-- **End-to-end data access**: `HousePriceIndex` builds SPARQL queries, fetches monthly series, and reshapes them into tidy data frames.
-- **Caching and versioning**: `FileVersion` and `Dataset` utilities persist raw and processed data snapshots under `data/`, tagging each export with a timestamp.
+- **End-to-end data access**: `HousePriceIndex` (in `src/hpi.py`) builds SPARQL queries, fetches monthly series, and reshapes them into tidy data frames.
+- **Caching and versioning**: `FileVersion` and `Dataset` utilities persist raw and processed data snapshots under `data/`, tagging each export with a timestamp (in `helper_utils/`).
 - **Plot factory**: `HousePriceIndexPlots` exposes dozens of pre-configured Plotly express figures covering averages, index trends, annual change, and sales volumes.
 - **Dash dashboard**: `dashboard/app_improved.py` ships a polished, themable app with region pickers, year sliders, and tabbed plot collections.
-- **Geospatial helpers**: `geo_ops.py` and postcode lookup utilities simplify mapping and regional filtering workflows.
-- **Automated assets**: `image_generator.py` can regenerate the static chart gallery in batch.
+- **Geospatial helpers**: `src/geo_ops.py` and postcode lookup utilities simplify mapping and regional filtering workflows.
+- **Automated assets**: `hpi_utils/image_generator.py` can regenerate the static chart gallery in batch.
 
 ## Project Layout
 
@@ -43,9 +43,7 @@ uk_house_price_index/
 ├── dashboard/
 │   ├── app_basic.py              # Minimal Dash starter
 │   └── app_improved.py           # Production-ready dashboard (default entry point)
-├── images/                       # Generated Plotly figures (used in README/gallery)
-├── postcode_lookups/             # Helper lookups and postcode level datasets
-├── utils/
+├── helper_utils/
 │   ├── basic_plots.py            # Plot factories built on Plotly
 │   ├── data_loader.py            # Dataset loader and serializer helpers
 │   ├── data_version.py           # File versioning, caching, retention
@@ -53,10 +51,18 @@ uk_house_price_index/
 │   ├── plotly_imports.py         # Shared Plotly theme/colour utilities
 │   ├── response.py               # Wrapped HTTP response handling
 │   └── split_from_camel.py       # String munging helpers
-├── geo_ops.py                    # Geography utilities for HPI datasets
-├── hpi.py                        # Core HPI fetch/transform/plot classes
-├── image_generator.py            # Batch exporter for gallery assets
-└── try_hpi.ipynb                 # Exploratory notebook
+├── hpi_utils/
+│   ├── data_collection.py        # Data gathering scripts
+│   └── image_generator.py        # Batch exporter for gallery assets
+├── images/                       # Generated Plotly figures (used in README/gallery)
+├── postcode_lookups/             # Helper lookups and postcode level datasets
+├── src/
+│   ├── geo_ops.py                # Geography utilities for HPI datasets
+│   ├── hpi.py                    # Core HPI fetch/transform/plot classes
+│   ├── ppi.py                    # Price Paid Data utilities
+│   └── sparql.py                 # SPARQL query builders
+├── try_hpi.ipynb                 # Exploratory notebook
+└── verify_hpi.py                 # Verification script
 ```
 
 ## Getting Started
@@ -90,13 +96,13 @@ The editable install exposes the package as `uk_house_price_index` so it can be 
 ### Programmatic API
 
 ```python
-from uk_house_price_index.hpi import HousePriceIndex, HousePriceIndexPlots
+from uk_house_price_index.src.hpi import HousePriceIndex, HousePriceIndexPlots
 
 hpi = HousePriceIndex()
 # Build a tidy DataFrame for 2020-2024 West Northamptonshire HPI
 results = hpi.fetch_hpi(start_year=2020, end_year=2024, region="west-northamptonshire")
-records = hpi.select_values(results)
-df = hpi.make_df(records)
+# records = hpi.select_values(results) # (Internal method, usually handled by fetch_hpi wrapper if calling _fetch_hpi)
+# Note: fetch_hpi now returns a DataFrame directly in the updated API.
 
 # Generate pre-built Plotly figures
 plots = HousePriceIndexPlots(start_year=2020, end_year=2024, region="west-northamptonshire")
@@ -106,14 +112,14 @@ fig.show()
 
 - Regions are accepted as case-insensitive slugs (spaces become `-`).
 - `HousePriceIndexPlots` lazily fetches data as needed and exposes methods prefixed with `plot_...`.
-- All raw responses and processed frames can be persisted via `Dataset` helpers in `utils/data_loader.py`.
+- All raw responses and processed frames can be persisted via `Dataset` helpers in `helper_utils/data_loader.py`.
 
 ### Regenerating Static Plots
 
 To recreate the gallery under `uk_house_price_index/images/`:
 
 ```powershell
-python -m uk_house_price_index.image_generator
+python -m uk_house_price_index.hpi_utils.image_generator
 ```
 
 Each exported figure is saved with a timestamped suffix using `PlotSaver`, ensuring previously published visuals remain intact.
