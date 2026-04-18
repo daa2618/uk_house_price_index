@@ -1,7 +1,6 @@
-import datetime
 import os
 import pathlib
-from typing import Optional, Union
+from typing import Union
 
 import plotly.graph_objects as go
 # kaleido is required by fig.write_image but isn't directly imported in the class.

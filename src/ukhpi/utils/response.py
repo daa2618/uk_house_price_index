@@ -1,20 +1,10 @@
-import requests
-from urllib.parse import urlsplit, urlunsplit
 import json
 import time
-import sys
-from pathlib import Path
-try:
-    parent_dir = Path(__file__).resolve().parent
-    parent_dir_str = str(parent_dir)
-    if parent_dir_str not in sys.path:
-        sys.path.insert(0, parent_dir_str)
-    
-    from helper import BasicLogger
-    
-except ImportError as e:
-    print(f"Failed to import required tools\n{str(e)}")
+from urllib.parse import urlsplit
 
+import requests
+
+from ukhpi.utils.helper import BasicLogger
 
 _bl = BasicLogger(verbose=False, log_directory=None, logger_name="RESPONSE")
 
@@ -24,8 +14,9 @@ class MethodError(Exception):
 
 class Response:
     _METHODS = ["GET", "POST"]
-    
-    def __init__(self, url:str,method:str="GET", **kwargs):
+    _TIMEOUT = 5
+
+    def __init__(self, url:str, method:str="GET", **kwargs):
         self.url = url
         self.kwargs = kwargs
         self.method = method
@@ -86,15 +77,13 @@ class Response:
                 while self._response is None:
                     try:
                         self._response = self.response
-                    except:
-                        print("\tSleeping...")
-                        time.sleep(self._timeout)
-                        print("\tWaking up...")
-                        print("\tContinuing...")
+                    except requests.RequestException:
+                        _bl.debug(f"Request failed; sleeping {self._TIMEOUT}s before retry")
+                        time.sleep(self._TIMEOUT)
                         continue
             else:
                 self._response = self.response
-    
+
             assert self._response.status_code == 200, self._response.raise_for_status()
         return self._response
     def get_json_from_response(self, await_response:bool=False):

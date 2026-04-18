@@ -1,13 +1,16 @@
 [project]
-name = "uk-house-price-index"
+name = "ukhpi"
 version = "0.1.0"
 description = "A self-serve dashboard and data toolkit for exploring the UK House Price Index (HPI) by geography and time period."
 authors = [
     {name = "Dev Anbarasu",email = "anand26dev@gmail.com"}
 ]
+
+packages = [{include = "ukhpi", from = "src"}]
+
 license = {text = "APACHE 2.0"}
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "pandas (>=2.3.1,<3.0.0)",
     "geopandas (>=1.1.1,<2.0.0)",
@@ -16,10 +19,27 @@ dependencies = [
     "sparqlwrapper (>=2.0.0,<3.0.0)",
     "wordcloud (>=1.9.4,<2.0.0)",
     "sqlalchemy (>=2.0.44,<3.0.0)",
-    "tqdm (>=4.67.1,<5.0.0)"
+    "tqdm (>=4.67.1,<5.0.0)",
+    "dash (>=3.0.0,<4.0.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "ruff (>=0.15.11,<0.16.0)",
+    "pytest (>=9.0.3,<10.0.0)"
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

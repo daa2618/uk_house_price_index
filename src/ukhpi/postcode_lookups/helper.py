@@ -1,6 +1,5 @@
 from helper_tools.zipfile_ops.extract_zipfile import ExtractZipFile #type:ignore
 from pathlib import Path
-import pandas as pd
 from helper_tools.request_soup_data.db_ops.more_sqlite.df2db import Df2Db #type:ignore
 from typing import Optional
 

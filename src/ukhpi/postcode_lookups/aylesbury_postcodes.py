@@ -2,7 +2,7 @@ from pathlib import Path
 from helper_tools.utils.sys_path_insert import add_to_syspath #type:ignore
 add_to_syspath(Path(__file__).parent.parent)
 from helper_tools.request_soup_data.db_ops.more_sqlite.sqlite_db import Sqlite_DB #type:ignore
-from postcode_lookups import helper
+from src.ukhpi.postcode_lookups import helper
 import pandas as pd
 from typing import Optional
 

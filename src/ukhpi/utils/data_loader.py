@@ -1,28 +1,18 @@
-import sys
-from pathlib import Path
-try:
-    parent_dir = Path(__file__).resolve().parent
-    parent_dir_str = str(parent_dir)
-    if parent_dir_str not in sys.path:
-        sys.path.insert(0, parent_dir_str)
-    
-    from helper import BasicLogger, logging
-    from response import Response
-    #from utils.verbose_printer import _print
-    
-except ImportError as e:
-    print(f"Failed to import required tools\n{str(e)}")
-
-_bl = BasicLogger(verbose=False, 
-                    log_directory=None, 
-                    logger_name="DATA_LOADER")
-
-import os, re, json, pandas as pd, io
-
+import os
+import re
+import json
+import io
 import urllib.parse as urlparser
-#from opExcel import MoreOpenPyExcel
-#from extractZipFile import ExtractZipFile
 from typing import Union, Optional
+
+import pandas as pd
+
+from ukhpi.utils.helper import BasicLogger, logging
+from ukhpi.utils.response import Response
+
+_bl = BasicLogger(verbose=False,
+                    log_directory=None,
+                    logger_name="DATA_LOADER")
 
 class FilePathError(Exception):
     pass
@@ -207,7 +197,7 @@ class Dataset:
         #import pdfplumber
         if self.doc_url:
             try:
-                content = io.BytesIO(self._response().content)
+                io.BytesIO(self._response().content)
                 #return pdfplumber.open(content)
             except Exception as e:
                 self._bl.debug(f"Error obtaining pdf from url\n\t{e}")
@@ -226,12 +216,12 @@ class Dataset:
         if self.doc_url:
             try:
                 return gpd.read_file(self.doc_url)
-            except Exception as e:
+            except Exception:
                 self._bl.debug("Failed to load geojson from url\n\t{e}")
         elif self.file_path:
             try:
                 return gpd.read_file(self.file_path)
-            except Exception as e:
+            except Exception:
                 self._bl.debug("Failed to load geojson from file\n\t{e}")
 
     @property

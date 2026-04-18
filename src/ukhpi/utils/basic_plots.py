@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .plotly_imports import *
 from collections import Counter
 from wordcloud import WordCloud
@@ -242,7 +244,7 @@ class BasicPlots:
         return fig
     
     def _assert_column_exists(self, column:str):
-        if not column in self.df.columns:
+        if column not in self.df.columns:
             raise KeyError(f"Column named '{column}' does not exist in the dataframe")
         else:
             pass

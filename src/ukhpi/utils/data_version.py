@@ -1,21 +1,11 @@
-import os, datetime, re
+import datetime
+import re
 from pathlib import Path
-
-import sys
 from typing import Optional, List, Any
-try:
-    parent_dir = Path(__file__).resolve().parent
-    parent_dir_str = str(parent_dir)
-    if parent_dir_str not in sys.path:
-        sys.path.insert(0, parent_dir_str)
-    
-    from helper import BasicLogger, logging
-    from data_loader import Dataset
-    
-except ImportError as e:
-    print(f"Failed to import required tools\n{str(e)}")
 
-#_bl = ErrorOnlyLogger(verbose = False, log_directory=None, logger_name = "DATA VERSION")
+from ukhpi.utils.helper import BasicLogger, logging
+from ukhpi.utils.data_loader import Dataset
+
 
 class DatesNotFound(Exception):
     pass
@@ -192,16 +182,12 @@ class FileVersion:
                         continue
                     #os.remove(os.path.join(self.base_path, file))
             try:
-                
                 dates = self._fetch_dates_from_file_names()
                 date = dates[-1]
                 now = datetime.datetime.now()
                 now = datetime.datetime(now.year, now.month, now.day)
-                if date < now:
-                    return True
-                else:
-                    return False
-            except:
+                return date < now
+            except (DatesNotFound, ValueError, IndexError):
                 return True
         else:
             #os.makedirs(self.base_path)
@@ -264,7 +250,7 @@ class FileVersion:
             #date = datetime.datetime.strptime(date[0], self.date_fmt)
             try:
                 date = datetime.datetime.strptime(date, self.date_fmt)
-            except:
+            except ValueError:
                 date = re.findall("[0-9]+", date)[0]
                 date = datetime.datetime.strptime(date, self.date_fmt)
 
@@ -354,7 +340,7 @@ class FileVersion:
         Raises:
             Various exceptions can occur during file operations (e.g., FileNotFoundError, OSError) or if the date parsing fails.  The function uses bare 'except:' blocks which mask potential errors; this should be improved for production code to provide more specific error handling.
         """
-        from data_writer import WriteFile
+        from ukhpi.utils.data_writer import WriteFile
         #file = FileVersion(base_path, file_name, extension)
         self.folder_exists()
 

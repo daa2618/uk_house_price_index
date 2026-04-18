@@ -1,10 +1,9 @@
 
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
-#pio.templates.default = "plotly_dark"
-import pandas as pd
 
 pio.templates["myWatermark"] = go.layout.Template(layout_annotations=[
     dict(name="watermark",

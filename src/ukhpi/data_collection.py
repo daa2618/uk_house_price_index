@@ -1,19 +1,18 @@
 from __future__ import annotations 
+
 from pathlib import Path
-import sys
-pardir = Path(__file__).parent.parent
-if str(pardir) not in sys.path:
-    sys.path.insert(0, str(pardir))
-from src.hpi import HousePriceIndex
-from src.sparql import SparqlQuery
+
+from ukhpi.hpi import HousePriceIndex
+from ukhpi.sparql import SparqlQuery
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
+
 class DataCollection:
-    def __init__(self, start_year:int=1990, end_year:int=2025):
+    def __init__(self, data_path:Path|str, start_year:int=1990, end_year:int=2025):
         self.hpi = HousePriceIndex()
         self.sparql = SparqlQuery()
-        self.data_path = pardir / "data" / "hpi_data"
+        self.data_path = Path(data_path)#pardir / "data" / "hpi_data"
         self.data_path.mkdir(exist_ok=True, parents=True)
         self.start_year = start_year
         self.end_year = end_year
@@ -39,7 +38,7 @@ class DataCollection:
                     data = future.result()
                     if isinstance(data, pd.DataFrame) and not data.empty:
                         collected_data.append(data)
-                except Exception as e:
+                except Exception:
                     failed += 1
                     continue
         print(f"Failed to collect data for {failed} regions")
@@ -50,9 +49,5 @@ class DataCollection:
             return pd.concat(collected_data, ignore_index=True)
         return pd.DataFrame()
 
-        
 
-if __name__ == "__main__":
-    data_collection = DataCollection()
-    data_collection.collect_data()
         

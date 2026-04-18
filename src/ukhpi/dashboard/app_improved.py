@@ -1,11 +1,10 @@
-from helper_tools.utils.sys_path_insert import add_to_syspath #type:ignore
-from pathlib import Path
-add_to_syspath(Path(__file__).resolve().parent.parent)
-from sparql import SparqlQuery
+import webbrowser
+
 import dash
 from dash import dcc, html, Input, Output
-from hpi import HousePriceIndexPlots
-import webbrowser
+
+from ukhpi.hpi import HousePriceIndexPlots
+from ukhpi.sparql import SparqlQuery
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 server = app.server

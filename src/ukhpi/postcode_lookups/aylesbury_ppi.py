@@ -4,7 +4,7 @@ add_to_syspath(Path(__file__).parent.parent)
 print("Importing PricePaidData from ppi")
 from ppi import PricePaidData
 print("Importing load_aylesbury_postcodes")
-from postcode_lookups.aylesbury_postcodes import load_aylesbury_postcodes
+from src.ukhpi.postcode_lookups.aylesbury_postcodes import load_aylesbury_postcodes
 from tqdm import tqdm
 import pandas as pd
 from typing import Optional
@@ -63,7 +63,8 @@ def make_db_of_results()->Optional[Path]:
 
     aylesbury_all_data_df.to_csv(csv_fp)
     
-    db_directory = Path(r"D:\dev\uk_hpi\aylesbury")
+    db_directory = Path(__file__).resolve().parent.parent / "data" / "aylesbury"
+    db_directory.mkdir(exist_ok=True, parents=True)
     db_name = "aylesbury_ppi.db"
     table_name = "price_paid_data"
 

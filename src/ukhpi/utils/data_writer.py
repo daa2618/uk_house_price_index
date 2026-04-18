@@ -1,23 +1,10 @@
-
-import os, json
-import sys
-from pathlib import Path
-try:
-    parent_dir = Path(__file__).resolve().parent
-    parent_dir_str = str(parent_dir)
-    if parent_dir_str not in sys.path:
-        sys.path.insert(0, parent_dir_str)
-    
-    from helper import BasicLogger, logging
-    from data_version import FileVersion, BasicLogger
-    #from utils.verbose_printer import _print
-    
-except ImportError as e:
-    print(f"Failed to import required tools\n{str(e)}")
-
-
+import os
+import json
 from datetime import datetime
 from json import JSONEncoder
+
+from ukhpi.utils.helper import BasicLogger, logging
+from ukhpi.utils.data_version import FileVersion
 
 
 
@@ -72,8 +59,8 @@ class WriteFile(FileVersion):
                 self.check_version()
             #else:
             #if self.check_version():
-            if not "." in self.extension:
-                extension = f".{self.extension}"
+            if "." not in self.extension:
+                pass
             file_path = os.path.join(self.base_path, self.make_file_name())
 
             self._bl.debug(f"Writing the file at {(os.path.abspath(file_path))}....")
@@ -88,14 +75,14 @@ class WriteFile(FileVersion):
                         f.write(json.dumps(self.data_to_write,indent=4,cls=DateTimeEncoder))
 
                 except Exception as e:
-                    self._bl.error(f"Unable to write the content as json", e)
+                    self._bl.error("Unable to write the content as json", e)
                     #raise TypeError(f"The file to write is of type {type(self.data_to_write)}.\nTherefore, cannot be saved as a json file")
 
             elif "csv" in self.extension:
                 try:
                     self.data_to_write.to_csv(file_path, index=False)
                 except Exception as e:
-                    self._bl.error(f"Unable to write the content as csv", e)
+                    self._bl.error("Unable to write the content as csv", e)
                     #raise TypeError(f"The file to write is of type {type(self.data_to_write)}.\nTherefore, cannot be saved as a csv file")
 
             elif "pdf" in self.extension:
@@ -103,14 +90,14 @@ class WriteFile(FileVersion):
                     with open(file_path, "wb") as f:
                         f.write(self.data_to_write)
                 except Exception as e:
-                    self._bl.error(f"Unable to write the content as pdf", e)
+                    self._bl.error("Unable to write the content as pdf", e)
 
             elif "txt" in self.extension:
                 try:
                     with open(file_path, mode = "w", encoding="utf-8") as f:
                         f.write(self.data_to_write)
                 except Exception as e:
-                    self._bl.error(f"Unable to write the content as txt", e)
+                    self._bl.error("Unable to write the content as txt", e)
             
             elif "xls" in self.extension:
                 df = self.data_to_write
@@ -125,7 +112,7 @@ class WriteFile(FileVersion):
     def write_file_to_disk(self, check_version:bool)->None:
         try:
             self._write_file_to_disk(check_version=check_version)
-            self._bl.debug(f"The file has been written")
+            self._bl.debug("The file has been written")
         except Exception as e:
             self._bl.error("Data Writer failed", e)
         

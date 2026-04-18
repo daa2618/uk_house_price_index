@@ -1,13 +1,12 @@
 from pathlib import Path
 import sys
-import pandas as pd
 
 # Add project root to sys.path
 pardir = Path(__file__).resolve().parent.parent
 if str(pardir) not in sys.path:
     sys.path.insert(0, str(pardir))
 
-from src.hpi import HousePriceIndex
+from src.ukhpi.hpi import HousePriceIndex
 
 def verify():
     hpi = HousePriceIndex()

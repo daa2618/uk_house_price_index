@@ -1,16 +1,16 @@
-from SPARQLWrapper import SPARQLWrapper, JSON
-from typing import Dict, List,Any
-import pandas as pd
-from pathlib  import Path
-pardir = Path(__file__).parent.parent
-import sys
-if str(pardir) not in sys.path:
-    sys.path.insert(0, str(pardir))
+from __future__ import annotations
 
-from helper_utils.split_from_camel import make_snake_from_camel
-from helper_utils.data_loader import Dataset
-from helper_utils.data_version import FileVersion
-from helper_utils.helper import BasicLogger
+from SPARQLWrapper import SPARQLWrapper, JSON
+from typing import Dict, Any
+import pandas as pd
+from pathlib import Path
+
+from ukhpi.utils.split_from_camel import make_snake_from_camel
+from ukhpi.utils.data_loader import Dataset
+from ukhpi.utils.data_version import FileVersion
+from ukhpi.utils.helper import BasicLogger
+
+_PACKAGE_DIR = Path(__file__).resolve().parent
 
 class SparqlQuery:
     _PREFIX = """
@@ -156,23 +156,16 @@ class SparqlQuery:
         df = pd.DataFrame(data)
         df.columns = [make_snake_from_camel(col) for col in df.columns]
 
-        # 3. Handle Dates using .loc to ensure single-step assignment
         date_cols = ["ref_period_start", "ref_period_end", "date"]
         for col in date_cols:
             if col in df.columns:
-                df.loc[:, col] = pd.to_datetime(df[col])
+                df[col] = pd.to_datetime(df[col])
 
-        # 4. Handle Numeric Conversion (Future-proof version)
         for col in df.columns:
             if col not in date_cols:
                 try:
-                    # Attempt conversion - if it contains non-numeric strings, 
-                    # this will raise a ValueError or TypeError
-                    converted = pd.to_numeric(df[col], errors='raise')
-                    df.loc[:, col] = converted
+                    df[col] = pd.to_numeric(df[col], errors="raise")
                 except (ValueError, TypeError):
-                    # If conversion fails, it's a string column (like a URI or Label)
-                    # We just leave it as is.
                     continue
 
         return df
@@ -215,8 +208,8 @@ class SparqlQuery:
     def HPI_REGIONS(self)->pd.DataFrame:
         if self._hpi_regions is None:
 
-            file = FileVersion(base_path=pardir/"data"/"region_data", 
-                            file_name="hpi_regions_", 
+            file = FileVersion(base_path=_PACKAGE_DIR / "data" / "region_data",
+                            file_name="hpi_regions_",
                             extension="csv")
             file_path = file.latest_file_path
             if file_path:
@@ -244,8 +237,8 @@ class SparqlQuery:
     
 
     def get_price_paid_data_for_postcode(self, postcode:str)->pd.DataFrame:
-        file = FileVersion(base_path=pardir/"data"/"postcode_data", 
-                            file_name=f"price_paid_{postcode.upper().replace(' ', '')}_", 
+        file = FileVersion(base_path=_PACKAGE_DIR / "data" / "postcode_data",
+                            file_name=f"price_paid_{postcode.upper().replace(' ', '')}_",
                             extension="csv")
         file_path = file.latest_file_path
         if file_path:
