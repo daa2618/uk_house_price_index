@@ -1,8 +1,10 @@
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
-from ukhpi.core.collection import DEFAULT_DATA_PATH, build_parser, main
+import ukhpi.core.collection as collection_module
+from ukhpi.core.collection import DEFAULT_DATA_PATH, DataCollection, build_parser, main
 
 
 def test_parser_defaults():
@@ -59,3 +61,29 @@ def test_main_instantiates_data_collection(monkeypatch, tmp_path):
     assert calls["start_year"] == 2022
     assert calls["end_year"] == 2022
     assert calls["collected"] is True
+
+
+def test_collect_data_concats_successful_fetches_and_counts_failures(monkeypatch, tmp_path):
+    """Stubs out SPARQL; asserts successful region frames are concatenated
+    and failures are counted without aborting the run.
+    """
+    regions_df = pd.DataFrame({"ref_region_keyword": ["england", "wales", "scotland", "northern-ireland"]})
+    monkeypatch.setattr(
+        collection_module.SparqlQuery,
+        "HPI_REGIONS",
+        property(lambda _self: regions_df),
+    )
+
+    def fake_fetch(_self, start_year, end_year, region):
+        if region == "scotland":
+            raise RuntimeError("boom")
+        return pd.DataFrame({"region": [region], "average_price": [100000], "ref_period_start": ["2023-01-01"]})
+
+    monkeypatch.setattr(collection_module.HousePriceIndex, "fetch_hpi", fake_fetch)
+
+    dc = DataCollection(data_path=tmp_path, start_year=2023, end_year=2023, verbose=False)
+    result = dc.collect_data()
+
+    assert isinstance(result, pd.DataFrame)
+    assert len(result) == 3  # england, wales, northern-ireland
+    assert set(result["region"]) == {"england", "wales", "northern-ireland"}

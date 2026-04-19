@@ -34,9 +34,7 @@ def test_house_price_index_init_does_not_hit_network(monkeypatch):
 
 
 def test_fetch_hpi_returns_dataframe_via_monkeypatched_sparql(monkeypatch, tmp_path):
-    monkeypatch.setattr(
-        hpi_module.sparqlquery, "fetch_sparql_query", lambda q: _fake_results()
-    )
+    monkeypatch.setattr(hpi_module.sparqlquery, "fetch_sparql_query", lambda q: _fake_results())
 
     hpi = HousePriceIndex()
     hpi._data_path = tmp_path
