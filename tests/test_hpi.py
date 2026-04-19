@@ -64,3 +64,23 @@ def test_house_price_index_plots_init_does_not_hit_network(monkeypatch):
     p = HousePriceIndexPlots(2023, 2023, "england")
     assert p._start_year == 2023
     assert p._region == "england"
+
+
+def test_house_price_index_plots_hpi_df_coerces_numeric_columns(monkeypatch):
+    """Regression: `pd.to_numeric(errors='ignore')` was deprecated in pandas 2.2.
+    hpi_df must still convert numeric-looking columns and leave non-numeric ones untouched.
+    """
+    sample = pd.DataFrame(
+        {
+            "ref_period_start": ["2023-01-01", "2023-02-01"],
+            "average_price": ["250000", "260000"],
+            "region_label": ["England", "England"],
+        }
+    )
+
+    p = HousePriceIndexPlots(2023, 2023, "england")
+    monkeypatch.setattr(p, "get_hpi_df", lambda: sample.copy())
+
+    df = p.hpi_df
+    assert pd.api.types.is_numeric_dtype(df["average_price"])
+    assert df["region_label"].dtype == object

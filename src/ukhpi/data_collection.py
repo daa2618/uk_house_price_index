@@ -1,12 +1,18 @@
-from __future__ import annotations 
+from __future__ import annotations
 
+from argparse import ArgumentParser
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+import pandas as pd
+from tqdm import tqdm
+
+import ukhpi
 from ukhpi.hpi import HousePriceIndex
 from ukhpi.sparql import SparqlQuery
-from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import pandas as pd
+
+DEFAULT_DATA_PATH = Path(ukhpi.__file__).resolve().parent / "data" / "hpi_data"
+
 
 class DataCollection:
     def __init__(self, data_path:Path|str, start_year:int=1990, end_year:int=2025):
@@ -50,4 +56,34 @@ class DataCollection:
         return pd.DataFrame()
 
 
-        
+def build_parser() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="ukhpi-collect",
+        description="Collect UK House Price Index data for all regions into a local CSV cache.",
+    )
+    parser.add_argument(
+        "--data-path",
+        type=Path,
+        default=DEFAULT_DATA_PATH,
+        help=f"Directory to write per-region CSVs (default: {DEFAULT_DATA_PATH})",
+    )
+    parser.add_argument(
+        "--start-year", type=int, default=1990, help="First year to fetch (default: 1990)."
+    )
+    parser.add_argument(
+        "--end-year", type=int, default=2025, help="Last year to fetch (default: 2025)."
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = build_parser().parse_args(argv)
+    DataCollection(
+        data_path=args.data_path,
+        start_year=args.start_year,
+        end_year=args.end_year,
+    ).collect_data()
+
+
+if __name__ == "__main__":
+    main()

@@ -20,7 +20,8 @@ dependencies = [
     "wordcloud (>=1.9.4,<2.0.0)",
     "sqlalchemy (>=2.0.44,<3.0.0)",
     "tqdm (>=4.67.1,<5.0.0)",
-    "dash (>=3.0.0,<4.0.0)"
+    "dash (>=3.0.0,<4.0.0)",
+    "nbformat (>=5.10.4,<6.0.0)"
 ]
 
 
@@ -31,7 +32,8 @@ build-backend = "poetry.core.masonry.api"
 [dependency-groups]
 dev = [
     "ruff (>=0.15.11,<0.16.0)",
-    "pytest (>=9.0.3,<10.0.0)"
+    "pytest (>=9.0.3,<10.0.0)",
+    "ipykernel (>=7.2.0,<8.0.0)"
 ]
 
 [tool.ruff]

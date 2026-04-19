@@ -123,7 +123,7 @@ class HousePriceIndexPlots:
         if file_path:
             data = Dataset(file_path=file_path).load_data()
         else:
-            data = file.load_latest_file(self, "_fetch_hpi_df", False)
+            data = file.load_latest_file(self, "_fetch_hpi_df", check_version=False)
         if not data:
             return pd.DataFrame()
         return pd.DataFrame(data)
@@ -133,7 +133,10 @@ class HousePriceIndexPlots:
         if self._hpi_df.empty:
             df = self.get_hpi_df()
             for col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="ignore")
+                try:
+                    df[col] = pd.to_numeric(df[col])
+                except (ValueError, TypeError):
+                    continue
             self._hpi_df = df
         return self._hpi_df
 
