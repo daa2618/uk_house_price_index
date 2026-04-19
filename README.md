@@ -1,6 +1,6 @@
 # UK House Price Index Dashboard
 
-![HPI Dashboard landing](<Screenshot 2025-08-27 at 16.09.36.jpg>) ![Region selector](<Screenshot 2025-08-27 at 16.09.52.jpg>) ![Plot configuration](<Screenshot 2025-08-27 at 16.09.58.jpg>) ![Interactive plot](<Screenshot 2025-08-27 at 16.10.02.jpg>)
+![HPI Dashboard landing](docs/screenshots/dashboard_landing.jpg) ![Region selector](docs/screenshots/region_selector.jpg) ![Plot configuration](docs/screenshots/plot_configuration.jpg) ![Interactive plot](docs/screenshots/interactive_plot.jpg)
 
 A Python toolkit and interactive Dash application for exploring the UK House Price Index (HPI) across geographies, time periods, and property characteristics. The project combines data ingestion utilities, caching/versioning helpers, and a gallery of ready-made Plotly visualisations.
 
@@ -11,8 +11,9 @@ A Python toolkit and interactive Dash application for exploring the UK House Pri
 - [Getting Started](#getting-started)
 - [Usage](#usage)
   - [Programmatic API](#programmatic-api)
-  - [Regenerating Static Plots](#regenerating-static-plots)
-  - [Launching the Dashboard](#launching-the-dashboard)
+  - [Collecting data in bulk](#collecting-data-in-bulk)
+  - [Regenerating the static plot gallery](#regenerating-the-static-plot-gallery)
+  - [Launching the dashboard](#launching-the-dashboard)
 - [Sample Visual Gallery](#sample-visual-gallery)
 - [Notebooks](#notebooks)
 - [License](#license)
@@ -29,134 +30,155 @@ The UK Land Registry publishes the UK House Price Index (HPI) via SPARQL and RES
 
 ## Features
 
-- **End-to-end data access**: `HousePriceIndex` (in `src/hpi.py`) builds SPARQL queries, fetches monthly series, and reshapes them into tidy data frames.
-- **Caching and versioning**: `FileVersion` and `Dataset` utilities persist raw and processed data snapshots under `data/`, tagging each export with a timestamp (in `helper_utils/`).
-- **Plot factory**: `HousePriceIndexPlots` exposes dozens of pre-configured Plotly express figures covering averages, index trends, annual change, and sales volumes.
-- **Dash dashboard**: `dashboard/app_improved.py` ships a polished, themable app with region pickers, year sliders, and tabbed plot collections.
-- **Geospatial helpers**: `src/geo_ops.py` and postcode lookup utilities simplify mapping and regional filtering workflows.
-- **Automated assets**: `hpi_utils/image_generator.py` can regenerate the static chart gallery in batch.
+- **End-to-end data access**: `HousePriceIndex` (in `ukhpi.core.hpi`) builds SPARQL queries, fetches monthly series, and reshapes them into tidy data frames.
+- **Caching and versioning**: `FileVersion` and `Dataset` (in `ukhpi.io`) persist timestamped snapshots under `src/ukhpi/cache/`.
+- **Plot factory**: `HousePriceIndexPlots` (in `ukhpi.plotting.hpi_plots`) exposes dozens of pre-configured Plotly figures covering averages, index trends, annual change, and sales volumes.
+- **Dash dashboard**: `ukhpi.dashboard.app_improved` ships a polished, themable app with region pickers, year sliders, and tabbed plot collections.
+- **Geospatial helpers**: `ukhpi.geo.ops` and `ukhpi.postcode_lookups` simplify mapping and regional filtering workflows.
+- **Automated assets**: `ukhpi.plotting.generator` regenerates the static chart gallery in batch.
 
 ## Project Layout
 
 ```text
 uk_house_price_index/
-├── dashboard/
-│   ├── app_basic.py              # Minimal Dash starter
-│   └── app_improved.py           # Production-ready dashboard (default entry point)
-├── helper_utils/
-│   ├── basic_plots.py            # Plot factories built on Plotly
-│   ├── data_loader.py            # Dataset loader and serializer helpers
-│   ├── data_version.py           # File versioning, caching, retention
-│   ├── helper.py                 # Logging + shared tooling
-│   ├── plotly_imports.py         # Shared Plotly theme/colour utilities
-│   ├── response.py               # Wrapped HTTP response handling
-│   └── split_from_camel.py       # String munging helpers
-├── hpi_utils/
-│   ├── data_collection.py        # Data gathering scripts
-│   └── image_generator.py        # Batch exporter for gallery assets
-├── images/                       # Generated Plotly figures (used in README/gallery)
-├── postcode_lookups/             # Helper lookups and postcode level datasets
-├── src/
-│   ├── geo_ops.py                # Geography utilities for HPI datasets
-│   ├── hpi.py                    # Core HPI fetch/transform/plot classes
-│   ├── ppi.py                    # Price Paid Data utilities
-│   └── sparql.py                 # SPARQL query builders
-├── try_hpi.ipynb                 # Exploratory notebook
-└── verify_hpi.py                 # Verification script
+├── src/ukhpi/
+│   ├── core/                  # SPARQL + HPI fetch/normalise domain
+│   │   ├── hpi.py             # HousePriceIndex
+│   │   ├── sparql.py          # SparqlQuery
+│   │   ├── ppi.py             # Price Paid Data (postcode-level transactions)
+│   │   └── collection.py      # Bulk regional collector + CLI (ukhpi-collect)
+│   ├── geo/
+│   │   └── ops.py             # GeoOps — choropleth + region merging
+│   ├── plotting/
+│   │   ├── hpi_plots.py       # HousePriceIndexPlots — plot_* factory
+│   │   ├── categories.py      # CategoryPlots / BasicPlots / PostProcess
+│   │   ├── theme.py           # Plotly theme, colour schemes, shared imports
+│   │   ├── save.py            # PlotSaver — timestamped image export
+│   │   └── generator.py       # Batch regenerate the gallery (ukhpi-gallery)
+│   ├── io/
+│   │   ├── versioning.py      # FileVersion — timestamped cache files
+│   │   ├── loader.py          # Dataset — read CSV/JSON/Excel/HTTP
+│   │   ├── writer.py          # WriteFile — persist DataFrames
+│   │   └── response.py        # HTTP response wrapper
+│   ├── dashboard/
+│   │   ├── app_improved.py    # Production Dash app (port 8054)
+│   │   ├── app_basic.py       # Minimal starter variant
+│   │   └── assets/            # Dash auto-loaded CSS/JS
+│   ├── postcode_lookups/      # Postcode-level helpers
+│   ├── cache/                 # Runtime cache (gitignored)
+│   │   ├── hpi_data/          # Per-region HPI CSVs
+│   │   ├── region_data/       # Region metadata
+│   │   └── geo_data/          # GeoJSON boundaries
+│   ├── images/                # Static plot gallery
+│   ├── loggers.py             # BasicLogger
+│   └── text.py                # String helpers (snake_case, etc.)
+├── scripts/collect_data.py    # Thin CLI delegate → ukhpi.core.collection:main
+├── tests/                     # pytest suite
+├── notebooks/try_hpi.ipynb    # Exploratory notebook
+└── docs/screenshots/          # Dashboard screenshots used in this README
 ```
 
 ## Getting Started
 
 Prerequisites:
-- Python 3.11 (per `pyproject.toml`)
-- Optional: [Poetry](https://python-poetry.org/) if you prefer managed environments
+- Python 3.12+ (per `pyproject.toml`)
+- [Poetry](https://python-poetry.org/) recommended
 
 Clone and install:
 
-```powershell
-git clone https://github.com/<your-org>/uk_house_price_index.git
+```bash
+git clone https://github.com/daa2618/uk_house_price_index.git
+cd uk_house_price_index
+poetry install
+```
+
+Alternatively, with plain `pip`:
+
+```bash
+git clone https://github.com/daa2618/uk_house_price_index.git
 cd uk_house_price_index
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install --upgrade pip
 pip install -e .
 ```
 
-Alternative (Poetry):
-
-```powershell
-poetry install
-poetry shell
-```
-
-The editable install exposes the package as `uk_house_price_index` so it can be imported from anywhere in your environment.
+The editable install exposes the package as `ukhpi`.
 
 ## Usage
 
 ### Programmatic API
 
 ```python
-from uk_house_price_index.src.hpi import HousePriceIndex, HousePriceIndexPlots
+from ukhpi.core.hpi import HousePriceIndex
+from ukhpi.plotting.hpi_plots import HousePriceIndexPlots
 
 hpi = HousePriceIndex()
-# Build a tidy DataFrame for 2020-2024 West Northamptonshire HPI
-results = hpi.fetch_hpi(start_year=2020, end_year=2024, region="west-northamptonshire")
-# records = hpi.select_values(results) # (Internal method, usually handled by fetch_hpi wrapper if calling _fetch_hpi)
-# Note: fetch_hpi now returns a DataFrame directly in the updated API.
 
-# Generate pre-built Plotly figures
+# Tidy DataFrame for 2020–2024 West Northamptonshire HPI
+df = hpi.fetch_hpi(start_year=2020, end_year=2024, region="west-northamptonshire")
+
+# Pre-built Plotly figures
 plots = HousePriceIndexPlots(start_year=2020, end_year=2024, region="west-northamptonshire")
 fig = plots.plot_average_price_by_property_types()
 fig.show()
 ```
 
 - Regions are accepted as case-insensitive slugs (spaces become `-`).
-- `HousePriceIndexPlots` lazily fetches data as needed and exposes methods prefixed with `plot_...`.
-- All raw responses and processed frames can be persisted via `Dataset` helpers in `helper_utils/data_loader.py`.
+- `HousePriceIndexPlots` lazily fetches data on first access and caches under `src/ukhpi/cache/`.
+- `fetch_hpi` returns a `pandas.DataFrame` directly. First call hits SPARQL and writes a timestamped CSV; subsequent calls within the same day load the cached file.
 
-### Regenerating Static Plots
+### Collecting data in bulk
 
-To recreate the gallery under `uk_house_price_index/images/`:
+The bulk collector fetches every region in parallel and writes one CSV per region to the cache:
 
-```powershell
-python -m uk_house_price_index.hpi_utils.image_generator
+```bash
+poetry run python -m ukhpi.core.collection --start-year 1990 --end-year 2025
 ```
 
-Each exported figure is saved with a timestamped suffix using `PlotSaver`, ensuring previously published visuals remain intact.
+Options: `--data-path` (defaults to `src/ukhpi/cache/hpi_data`), `--start-year`, `--end-year`.
 
-### Launching the Dashboard
+### Regenerating the static plot gallery
+
+```bash
+poetry run python -m ukhpi.plotting.generator
+```
+
+Figures are saved under `src/ukhpi/images/` with timestamped filenames via `PlotSaver`.
+
+### Launching the dashboard
 
 The improved Dash application auto-opens a browser tab on port `8054`:
 
-```powershell
-python -m uk_house_price_index.dashboard.app_improved
+```bash
+poetry run python -m ukhpi.dashboard.app_improved
 ```
 
-Use the region dropdown, metric selectors, and year slider to explore different breakdowns. The `app_basic.py` module remains available as a lean alternative or a starting point for custom layouts.
+Use the region dropdown, metric selectors, and year slider to explore different breakdowns. `ukhpi.dashboard.app_basic` is a lean alternative or a starting point for custom layouts.
 
 ## Sample Visual Gallery
 
 ### Average Price Views
-![Average Price By Build Types London 2020 2024](uk_house_price_index/images/average_price_by_build_types_london_2020_2024.png) ![Average Price By Build Types West-Northamptonshire 2020 2024](uk_house_price_index/images/average_price_by_build_types_west-northamptonshire_2020_2024.png)  
-![Average Price By Occupant Types West-Northamptonshire 2020 2024](uk_house_price_index/images/average_price_by_occupant_types_west-northamptonshire_2020_2024.png) ![Average Price By Payment Types West-Northamptonshire 2020 2024](uk_house_price_index/images/average_price_by_payment_types_west-northamptonshire_2020_2024.png)  
-![Average Price By Property Types London 2020 2024](uk_house_price_index/images/average_price_by_property_types_london_2020_2024.png) ![Average Price By Property Types West-Northamptonshire 2020 2024](uk_house_price_index/images/average_price_by_property_types_west-northamptonshire_2020_2024.png)
+![Average Price By Build Types London 2020 2024](src/ukhpi/images/average_price_by_build_types_london_2020_2024.png) ![Average Price By Build Types West-Northamptonshire 2020 2024](src/ukhpi/images/average_price_by_build_types_west-northamptonshire_2020_2024.png)
+![Average Price By Occupant Types West-Northamptonshire 2020 2024](src/ukhpi/images/average_price_by_occupant_types_west-northamptonshire_2020_2024.png) ![Average Price By Payment Types West-Northamptonshire 2020 2024](src/ukhpi/images/average_price_by_payment_types_west-northamptonshire_2020_2024.png)
+![Average Price By Property Types London 2020 2024](src/ukhpi/images/average_price_by_property_types_london_2020_2024.png) ![Average Price By Property Types West-Northamptonshire 2020 2024](src/ukhpi/images/average_price_by_property_types_west-northamptonshire_2020_2024.png)
 
 ### Index Levels
-![House Price Index By Build Type London 2020 2024](uk_house_price_index/images/house_price_index_by_build_type_london_2020_2024.png) ![House Price Index By Build Type West-Northamptonshire 2020 2024](uk_house_price_index/images/house_price_index_by_build_type_west-northamptonshire_2020_2024.png)  
-![House Price Index By Occupant Types West-Northamptonshire 2020 2024](uk_house_price_index/images/house_price_index_by_occupant_types_west-northamptonshire_2020_2024.png) ![House Price Index By Payment Types West-Northamptonshire 2020 2024](uk_house_price_index/images/house_price_index_by_payment_types_west-northamptonshire_2020_2024.png)  
-![House Price Index By Property Types London 2020 2024](uk_house_price_index/images/house_price_index_by_property_types_london_2020_2024.png) ![House Price Index By Property Types West-Northamptonshire 2020 2024](uk_house_price_index/images/house_price_index_by_property_types_west-northamptonshire_2020_2024.png)
+![House Price Index By Build Type London 2020 2024](src/ukhpi/images/house_price_index_by_build_type_london_2020_2024.png) ![House Price Index By Build Type West-Northamptonshire 2020 2024](src/ukhpi/images/house_price_index_by_build_type_west-northamptonshire_2020_2024.png)
+![House Price Index By Occupant Types West-Northamptonshire 2020 2024](src/ukhpi/images/house_price_index_by_occupant_types_west-northamptonshire_2020_2024.png) ![House Price Index By Payment Types West-Northamptonshire 2020 2024](src/ukhpi/images/house_price_index_by_payment_types_west-northamptonshire_2020_2024.png)
+![House Price Index By Property Types London 2020 2024](src/ukhpi/images/house_price_index_by_property_types_london_2020_2024.png) ![House Price Index By Property Types West-Northamptonshire 2020 2024](src/ukhpi/images/house_price_index_by_property_types_west-northamptonshire_2020_2024.png)
 
 ### Annual Change
-![Percentage Annual Change By Build Types London 2020 2024](uk_house_price_index/images/percentage_annual_change_by_build_types_london_2020_2024.png) ![Percentage Annual Change By Build Types West-Northamptonshire 2020 2024](uk_house_price_index/images/percentage_annual_change_by_build_types_west-northamptonshire_2020_2024.png)  
-![Percentage Annual Change By Occupant Types West-Northamptonshire 2020 2024](uk_house_price_index/images/percentage_annual_change_by_occupant_types_west-northamptonshire_2020_2024.png) ![Percentage Annual Change By Payment Types West-Northamptonshire 2020 2024](uk_house_price_index/images/percentage_annual_change_by_payment_types_west-northamptonshire_2020_2024.png)  
-![Percentage Annual Change By Property Types West-Northamptonshire 2020 2024](uk_house_price_index/images/percentage_annual_change_by_property_types_west-northamptonshire_2020_2024.png)
+![Percentage Annual Change By Build Types London 2020 2024](src/ukhpi/images/percentage_annual_change_by_build_types_london_2020_2024.png) ![Percentage Annual Change By Build Types West-Northamptonshire 2020 2024](src/ukhpi/images/percentage_annual_change_by_build_types_west-northamptonshire_2020_2024.png)
+![Percentage Annual Change By Occupant Types West-Northamptonshire 2020 2024](src/ukhpi/images/percentage_annual_change_by_occupant_types_west-northamptonshire_2020_2024.png) ![Percentage Annual Change By Payment Types West-Northamptonshire 2020 2024](src/ukhpi/images/percentage_annual_change_by_payment_types_west-northamptonshire_2020_2024.png)
+![Percentage Annual Change By Property Types West-Northamptonshire 2020 2024](src/ukhpi/images/percentage_annual_change_by_property_types_west-northamptonshire_2020_2024.png)
 
 ### Transaction Volumes
-![Sales Volume By Build Types West-Northamptonshire 2020 2024](uk_house_price_index/images/sales_volume_by_build_types_west-northamptonshire_2020_2024.png) ![Sales Volume By Payment Types West-Northamptonshire 2020 2024](uk_house_price_index/images/sales_volume_by_payment_types_west-northamptonshire_2020_2024.png)
+![Sales Volume By Build Types West-Northamptonshire 2020 2024](src/ukhpi/images/sales_volume_by_build_types_west-northamptonshire_2020_2024.png) ![Sales Volume By Payment Types West-Northamptonshire 2020 2024](src/ukhpi/images/sales_volume_by_payment_types_west-northamptonshire_2020_2024.png)
 
 ## Notebooks
 
-See `uk_house_price_index/try_hpi.ipynb` for a narrated walk-through of the API surface, including data extraction, cleaning, and visualisation examples.
+See `notebooks/try_hpi.ipynb` for a narrated walk-through of the API surface, including data extraction, cleaning, and visualisation examples.
 
 ## License
 
