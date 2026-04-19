@@ -212,3 +212,12 @@ data
 
 __pycache__
 /agent_logs
+
+# Runtime cache (per-region HPI CSVs, region metadata, GeoJSON boundaries).
+# Regenerate with `poetry run python -m ukhpi.core.collection` or a cache-miss fetch.
+src/ukhpi/cache/hpi_data/
+src/ukhpi/cache/region_data/
+src/ukhpi/cache/geo_data/
+!src/ukhpi/cache/hpi_data/.gitkeep
+!src/ukhpi/cache/region_data/.gitkeep
+!src/ukhpi/cache/geo_data/.gitkeep
