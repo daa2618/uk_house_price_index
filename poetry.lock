@@ -330,6 +330,24 @@ diskcache = ["diskcache (>=5.2.1)", "multiprocess (>=0.70.12)", "psutil (>=5.8.0
 testing = ["beautifulsoup4 (>=4.8.2)", "cryptography", "dash_testing_stub (>=0.0.2)", "lxml (>=4.6.2)", "multiprocess (>=0.70.12)", "percy (>=2.0.2)", "psutil (>=5.8.0)", "pytest (>=6.0.2)", "requests[security] (>=2.21.0)", "selenium (>=3.141.0,<=4.2.0)", "waitress (>=1.4.4)"]
 
 [[package]]
+name = "dash-mantine-components"
+version = "2.6.1"
+description = "Plotly Dash Components based on Mantine"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "dash_mantine_components-2.6.1-py3-none-any.whl", hash = "sha256:4fe2a9f0b47020c8c9d14c80236fce21ae5482133fe0a82d08bd49b972790f3d"},
+    {file = "dash_mantine_components-2.6.1.tar.gz", hash = "sha256:40fd21b94784ebc4c2248eff702a7ce705f67bf9b7e75c0dc3c3389745744a84"},
+]
+
+[package.dependencies]
+dash = ">=2"
+
+[package.extras]
+dev = ["black", "build", "dash-iconify", "dash[ci,dev,testing] (>=4)", "pytest (<8.1.0)", "pyyaml (>=5.0)", "selenium (<4.3.0)", "wheel"]
+
+[[package]]
 name = "debugpy"
 version = "1.8.20"
 description = "An implementation of the Debug Adapter Protocol for Python"
@@ -2259,4 +2277,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "e3f590096e7866954f8b9928284ac36e97548faa9417c581d9ae927c131768d5"
+content-hash = "72b025200d695ca8a941c2c22b4be733f56735264d9534ce6d9d99493d0022a7"
