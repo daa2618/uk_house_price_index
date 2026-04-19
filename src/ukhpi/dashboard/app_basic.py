@@ -3,8 +3,8 @@ import webbrowser
 import dash
 from dash import dcc, html, Input, Output
 
-from ukhpi.hpi import HousePriceIndexPlots
-from ukhpi.sparql import SparqlQuery
+from ukhpi.core.sparql import SparqlQuery
+from ukhpi.plotting.hpi_plots import HousePriceIndexPlots
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 server = app.server

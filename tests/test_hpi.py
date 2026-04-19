@@ -1,7 +1,8 @@
 import pandas as pd
 
-import ukhpi.hpi as hpi_module
-from ukhpi.hpi import HousePriceIndex, HousePriceIndexPlots
+import ukhpi.core.hpi as hpi_module
+from ukhpi.core.hpi import HousePriceIndex
+from ukhpi.plotting.hpi_plots import HousePriceIndexPlots
 
 
 def _fake_results():

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ukhpi.data_collection import DEFAULT_DATA_PATH, build_parser, main
+from ukhpi.core.collection import DEFAULT_DATA_PATH, build_parser, main
 
 
 def test_parser_defaults():
@@ -51,7 +51,7 @@ def test_main_instantiates_data_collection(monkeypatch, tmp_path):
             calls["collected"] = True
             return None
 
-    monkeypatch.setattr("ukhpi.data_collection.DataCollection", StubCollection)
+    monkeypatch.setattr("ukhpi.core.collection.DataCollection", StubCollection)
 
     main(["--data-path", str(tmp_path), "--start-year", "2022", "--end-year", "2022"])
 

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from ukhpi.sparql import SparqlQuery
+from ukhpi.core.sparql import SparqlQuery
 
 
 def test_build_query_for_region_includes_region_uri_and_year_range():
