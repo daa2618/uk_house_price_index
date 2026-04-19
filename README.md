@@ -35,7 +35,7 @@ The UK Land Registry publishes the UK House Price Index (HPI) via SPARQL and RES
 - **Plot factory**: `HousePriceIndexPlots` (in `ukhpi.plotting.hpi_plots`) exposes dozens of pre-configured Plotly figures covering averages, index trends, annual change, and sales volumes.
 - **Dash dashboard**: `ukhpi.dashboard.app_improved` ships a polished, themable app with region pickers, year sliders, and tabbed plot collections.
 - **Geospatial helpers**: `ukhpi.geo.ops` and `ukhpi.postcode_lookups` simplify mapping and regional filtering workflows.
-- **Automated assets**: `ukhpi.plotting.generator` regenerates the static chart gallery in batch.
+- **Automated assets**: `scripts/generate_plots.py` regenerates the static chart gallery in batch.
 
 ## Project Layout
 
@@ -53,13 +53,11 @@ uk_house_price_index/
 │   │   ├── hpi_plots.py       # HousePriceIndexPlots — plot_* factory
 │   │   ├── categories.py      # CategoryPlots / BasicPlots / PostProcess
 │   │   ├── theme.py           # Plotly theme, colour schemes, shared imports
-│   │   ├── save.py            # PlotSaver — timestamped image export
-│   │   └── generator.py       # Batch regenerate the gallery (ukhpi-gallery)
+│   │   └── save.py            # PlotSaver — timestamped image export
 │   ├── io/
 │   │   ├── versioning.py      # FileVersion — timestamped cache files
-│   │   ├── loader.py          # Dataset — read CSV/JSON/Excel/HTTP
-│   │   ├── writer.py          # WriteFile — persist DataFrames
-│   │   └── response.py        # HTTP response wrapper
+│   │   ├── loader.py          # Dataset — read cached CSV/JSON from disk
+│   │   └── writer.py          # WriteFile — persist DataFrames
 │   ├── dashboard/
 │   │   ├── app_improved.py    # Production Dash app (port 8054)
 │   │   ├── app_basic.py       # Minimal starter variant
@@ -141,10 +139,11 @@ Options: `--data-path` (defaults to `src/ukhpi/cache/hpi_data`), `--start-year`,
 ### Regenerating the static plot gallery
 
 ```bash
-poetry run python -m ukhpi.plotting.generator
+poetry run python scripts/generate_plots.py \
+    --start-year 2020 --end-year 2024 --region united-kingdom
 ```
 
-Figures are saved under `src/ukhpi/images/` with timestamped filenames via `PlotSaver`.
+Options: `--start-year`, `--end-year`, `--region`, `--output-dir` (defaults to `src/ukhpi/images/`). Figures are saved via `PlotSaver`.
 
 ### Launching the dashboard
 
