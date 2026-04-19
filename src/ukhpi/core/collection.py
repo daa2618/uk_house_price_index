@@ -84,7 +84,3 @@ def main(argv: list[str] | None = None) -> None:
         start_year=args.start_year,
         end_year=args.end_year,
     ).collect_data()
-
-
-if __name__ == "__main__":
-    main()

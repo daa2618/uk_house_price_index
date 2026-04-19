@@ -79,18 +79,3 @@ def query_sqlite(db_path: Path, query: str) -> list[dict]:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(query).fetchall()
         return [dict(r) for r in rows]
-
-
-if __name__ == "__main__":
-    postcode_lookups_url = "https://www.arcgis.com/sharing/rest/content/items/128bd4b2ad024512beadaf130385d8f8/data"
-    db_path = extract_from_url_and_create_sqlite_db(
-        postcode_lookups_url,
-        db_directory=Path("./data/sqlite_dbs"),
-        db_name="postcode_lookups",
-        verbose=True,
-        table_name="POSTCODE_LOOKUPS",
-    )
-    if db_path:
-        _log.info(f"The sqlite database is available at {db_path}")
-    else:
-        _log.debug("Failed to create the sqlite database")

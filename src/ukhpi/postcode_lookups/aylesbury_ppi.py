@@ -39,7 +39,18 @@ def extract_all_aylesbury_price_paid_data() -> pd.DataFrame | None:
     return pd.concat(aylesbury_all_data).reset_index(drop=True)
 
 
-def make_db_of_results() -> Path | None:
+DEFAULT_CSV_PATH = Path("./data/aylesbury_ppi.csv")
+DEFAULT_DB_DIRECTORY = Path(__file__).resolve().parent.parent / "cache" / "aylesbury"
+DEFAULT_DB_NAME = "aylesbury_ppi.db"
+DEFAULT_TABLE_NAME = "price_paid_data"
+
+
+def make_db_of_results(
+    csv_path: Path = DEFAULT_CSV_PATH,
+    db_directory: Path = DEFAULT_DB_DIRECTORY,
+    db_name: str = DEFAULT_DB_NAME,
+    table_name: str = DEFAULT_TABLE_NAME,
+) -> Path | None:
     _log.info("Making db of results")
     aylesbury_all_data_df = extract_all_aylesbury_price_paid_data()
 
@@ -48,15 +59,12 @@ def make_db_of_results() -> Path | None:
 
     _log.info(f"Made a dataframe of {len(aylesbury_all_data_df)} rows")
 
-    data_dir = Path("./data")
-    data_dir.mkdir(exist_ok=True, parents=True)
-    csv_fp = data_dir / "aylesbury_ppi.csv"
-    aylesbury_all_data_df.to_csv(csv_fp)
+    csv_path = Path(csv_path)
+    csv_path.parent.mkdir(exist_ok=True, parents=True)
+    aylesbury_all_data_df.to_csv(csv_path)
 
-    db_directory = Path(__file__).resolve().parent.parent / "cache" / "aylesbury"
+    db_directory = Path(db_directory)
     db_directory.mkdir(exist_ok=True, parents=True)
-    db_name = "aylesbury_ppi.db"
-    table_name = "price_paid_data"
     db_path = db_directory / db_name
 
     _log.info(f"Adding the extracted data to the database as table name: '{table_name}'")
@@ -67,7 +75,3 @@ def make_db_of_results() -> Path | None:
     except Exception as exc:
         _log.debug(f"Failed to create sqlite database: {exc}")
         return None
-
-
-if __name__ == "__main__":
-    make_db_of_results()

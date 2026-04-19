@@ -6,9 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Dependency management is Poetry (`pyproject.toml`, `poetry.lock`); `requires-python = ">=3.12"`.
 - Install: `poetry install`. If the in-project `.venv` is stale (Homebrew Python upgrades leave dead symlinks and Poetry fails with `[Errno 2] No such file or directory: 'python'`), delete both `.venv/` and the cached env under `~/Library/Caches/pypoetry/virtualenvs/uk-house-price-index-*`, then `poetry env use "$(pyenv which python)"` before reinstalling.
-- Launch the main dashboard (auto-opens `http://127.0.0.1:8054`): `poetry run python -m ukhpi.dashboard.app_improved`. `app_basic.py` is the minimal variant.
+- Launch the main dashboard (auto-opens `http://127.0.0.1:8054`): `poetry run python scripts/dashboard_improved.py` (accepts `--host`, `--port`, `--no-debug`, `--no-open-browser`). `scripts/dashboard_basic.py` runs the minimal variant.
 - Regenerate the static plot gallery under `src/ukhpi/images/`: `poetry run python scripts/generate_plots.py` (accepts `--start-year`, `--end-year`, `--region`, `--output-dir`).
-- Collect HPI data for every region in bulk: `poetry run python -m ukhpi.core.collection --start-year 1990 --end-year 2025`.
+- Collect HPI data for every region in bulk: `poetry run python scripts/collect_data.py --start-year 1990 --end-year 2025`.
+- Build the postcode-lookups SQLite db: `poetry run python scripts/build_postcode_lookups_db.py` (accepts `--url`, `--db-directory`, `--db-name`, `--table-name`).
+- Build the Aylesbury price-paid SQLite db: `poetry run python scripts/build_aylesbury_ppi_db.py` (accepts `--csv-path`, `--db-directory`, `--db-name`, `--table-name`).
 - Run the test suite: `poetry run pytest`. Lint: `poetry run ruff check .` (ruff config lives in `pyproject.toml`: `py312`, line-length 100, rules `E,F,W,I,UP,B`). There is no CI wiring yet.
 
 ## External dependency not declared in pyproject.toml
@@ -52,6 +54,7 @@ The core pipeline is SPARQL-first, with a local cache layer in front:
 
 ## Conventions worth preserving
 
+- All command-line entry points live under `scripts/` as thin shims that import a `main()` (or equivalent function) from the package. The package itself contains no `if __name__ == "__main__":` blocks — keep it that way so library imports stay side-effect-free and CLIs stay discoverable in one folder.
 - Region arguments are accepted in any case and with spaces; the code normalises them. Don't tighten this without checking every caller.
 - `fetch_hpi` intentionally returns a `DataFrame` (the older `_fetch_hpi_old` that returned a list of raw dicts is kept for reference but unused) — preserve the DataFrame contract.
 - New plot methods should begin with `plot_` so `scripts/generate_plots.py` picks them up automatically.

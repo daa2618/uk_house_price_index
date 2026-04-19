@@ -131,16 +131,11 @@ for tab_name, mapping in TABS.items():
         return plot_func()
 
 
-def open_browser(port):
-    """Open browser after a short delay."""
-    webbrowser.open_new(f"http://127.0.0.1:{port}/")
+def open_browser(host: str, port: int) -> None:
+    webbrowser.open_new(f"http://{host}:{port}/")
 
 
-if __name__ == "__main__":
-    PORT = 8054
-    open_browser(PORT)
-    # Optional: Automatically open browser
-    # Timer(1, open_browser).start()
-
-    # Run the app
-    app.run(debug=True, host="127.0.0.1", port=PORT)
+def main(host: str = "127.0.0.1", port: int = 8054, debug: bool = True, open_browser_tab: bool = True) -> None:
+    if open_browser_tab:
+        open_browser(host, port)
+    app.run(debug=debug, host=host, port=port)

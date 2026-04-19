@@ -131,7 +131,7 @@ fig.show()
 The bulk collector fetches every region in parallel and writes one CSV per region to the cache:
 
 ```bash
-poetry run python -m ukhpi.core.collection --start-year 1990 --end-year 2025
+poetry run python scripts/collect_data.py --start-year 1990 --end-year 2025
 ```
 
 Options: `--data-path` (defaults to `src/ukhpi/cache/hpi_data`), `--start-year`, `--end-year`.
@@ -150,10 +150,10 @@ Options: `--start-year`, `--end-year`, `--region`, `--output-dir` (defaults to `
 The improved Dash application auto-opens a browser tab on port `8054`:
 
 ```bash
-poetry run python -m ukhpi.dashboard.app_improved
+poetry run python scripts/dashboard_improved.py
 ```
 
-Use the region dropdown, metric selectors, and year slider to explore different breakdowns. `ukhpi.dashboard.app_basic` is a lean alternative or a starting point for custom layouts.
+Options: `--host`, `--port`, `--no-debug`, `--no-open-browser`. Use the region dropdown, metric selectors, and year slider to explore different breakdowns. `scripts/dashboard_basic.py` is a lean alternative or a starting point for custom layouts.
 
 ## Sample Visual Gallery
 
