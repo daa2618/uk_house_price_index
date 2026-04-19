@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional, Union
 
 import pandas as pd
 
@@ -18,7 +17,7 @@ class HousePriceIndex:
     def __init__(self):
         self._base_url = "http://landregistry.data.gov.uk/data/ukhpi/region"
         self._data_path = Path(__file__).resolve().parent.parent / "cache" / "hpi_data"
-        self._hpi_regions: Optional[pd.DataFrame] = None
+        self._hpi_regions: pd.DataFrame | None = None
 
     @property
     def hpi_regions(self) -> pd.DataFrame:
@@ -27,7 +26,7 @@ class HousePriceIndex:
         return self._hpi_regions
 
     @property
-    def REGION_TYPES(self) -> List[str]:
+    def REGION_TYPES(self) -> list[str]:
         regions = self.hpi_regions
         if regions is None or regions.empty:
             return []
@@ -35,8 +34,8 @@ class HousePriceIndex:
 
     def _fetch_hpi(
         self,
-        start_year: Union[str, int],
-        end_year: Optional[Union[str, int]] = None,
+        start_year: str | int,
+        end_year: str | int | None = None,
         region: str = "united-kingdom",
     ) -> pd.DataFrame:
         query = sparqlquery.build_query_for_region(region, start_year, end_year)
@@ -45,8 +44,8 @@ class HousePriceIndex:
 
     def fetch_hpi(
         self,
-        start_year: Union[str, int],
-        end_year: Optional[Union[str, int]] = None,
+        start_year: str | int,
+        end_year: str | int | None = None,
         region: str = "united-kingdom",
     ) -> pd.DataFrame:
         end_year = end_year if end_year else start_year

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Union
 
 import pandas as pd
 
@@ -18,8 +17,8 @@ class HousePriceIndexPlots:
 
     def __init__(
         self,
-        start_year: Union[str, int] = None,
-        end_year: Union[str, int] = None,
+        start_year: str | int = None,
+        end_year: str | int = None,
         region: str = "united-kingdom",
     ):
         self._start_year = int(start_year) if start_year else 2020
@@ -30,12 +29,11 @@ class HousePriceIndexPlots:
         self._file_name = f"hpi_{self._start_year}_{self._end_year}_{self._region}_"
         self._data_path = Path(__file__).resolve().parent.parent / "cache" / "region_data"
         self._sub_title = (
-            f"<br><sup>{self._region.replace('-', ' ').upper()} - "
-            f"{self._start_year} to {self._end_year}</sup>"
+            f"<br><sup>{self._region.replace('-', ' ').upper()} - {self._start_year} to {self._end_year}</sup>"
         )
 
     @property
-    def PROPERTY_TYPES(self) -> List[str]:
+    def PROPERTY_TYPES(self) -> list[str]:
         df = self.hpi_df
         if df.empty:
             return []
@@ -44,17 +42,14 @@ class HousePriceIndexPlots:
         return [
             col.replace("average_price_", "").replace("_", " ")
             for col in average_cols
-            if col != "average_price"
-            and not any(word in col.replace("_", " ") for word in excluded)
+            if col != "average_price" and not any(word in col.replace("_", " ") for word in excluded)
         ]
 
     def _fetch_hpi_df(self) -> pd.DataFrame:
         return self._hpi.fetch_hpi(self._start_year, self._end_year, self._region)
 
     def get_hpi_df(self) -> pd.DataFrame:
-        file = FileVersion(
-            base_path=self._data_path, file_name=self._file_name, extension="csv"
-        )
+        file = FileVersion(base_path=self._data_path, file_name=self._file_name, extension="csv")
         file_path = file.latest_file_path
         if file_path:
             data = Dataset(file_path=file_path).load_data()
@@ -86,19 +81,12 @@ class HousePriceIndexPlots:
             var_name="new_vs_existing",
         )
 
-    def _plot_metric(
-        self, metric: str, metric_category: str, plot_type: str = "Scatter"
-    ) -> go.Figure:
+    def _plot_metric(self, metric: str, metric_category: str, plot_type: str = "Scatter") -> go.Figure:
         cat_upper = metric_category.upper().replace(" ", "_")
         metric_lower = metric.lower().replace(" ", "_")
 
         cols = [metric_lower]
-        cols.extend(
-            [
-                f"{metric_lower}_{x.lower().replace(' ', '_')}"
-                for x in getattr(self, cat_upper)
-            ]
-        )
+        cols.extend([f"{metric_lower}_{x.lower().replace(' ', '_')}" for x in getattr(self, cat_upper)])
         cols = [col for col in cols if col in self.hpi_df.columns]
         if not cols or self.hpi_df.empty:
             print(f"No data found for {metric} by {metric_category}")
@@ -107,17 +95,14 @@ class HousePriceIndexPlots:
         df_melt = self.hpi_df.melt(value_vars=cols, id_vars=["ref_period_start"])
 
         if plot_type.lower() == "bar":
-            df_melt = df_melt.loc[df_melt["variable"] != metric_lower].reset_index(
-                drop=True
-            )
+            df_melt = df_melt.loc[df_melt["variable"] != metric_lower].reset_index(drop=True)
 
         cat_plots.df = df_melt
         colors_dict = dict(
             zip(
                 df_melt["variable"].unique(),
-                px.colors.sample_colorscale(
-                    px.colors.qualitative.Vivid, df_melt["variable"].nunique()
-                ),
+                px.colors.sample_colorscale(px.colors.qualitative.Vivid, df_melt["variable"].nunique()),
+                strict=False,
             )
         )
 
@@ -135,9 +120,7 @@ class HousePriceIndexPlots:
         fig.update_yaxes(title=metric_title)
         return cat_plots._update_layout(
             fig,
-            plot_title=(
-                f"{metric_title} by {cat_upper.replace('_', ' ')} {self._sub_title}"
-            ),
+            plot_title=(f"{metric_title} by {cat_upper.replace('_', ' ')} {self._sub_title}"),
         )
 
     def _plot_house_price_index(self, category: str) -> go.Figure:

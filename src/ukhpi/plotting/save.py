@@ -1,10 +1,11 @@
 import os
 import pathlib
-from typing import Union
 
 import plotly.graph_objects as go
+
 # kaleido is required by fig.write_image but isn't directly imported in the class.
 # It's good practice to ensure it's installed.
+
 
 class PlotSaver:
     """
@@ -30,12 +31,12 @@ class PlotSaver:
     Raises:
         TypeError: If input arguments have invalid types.
         ValueError: If `image_type` is not a supported format.
-        
+
     Example:
         >>> import plotly.express as px
         >>> df = px.data.iris()
         >>> fig = px.scatter(df, x="sepal_width", y="sepal_length", color="species")
-        
+
         >>> # Save a plot, overwriting if it exists
         >>> saver = PlotSaver(fig, "iris_scatter", "png")
         >>> saved_path = saver.save()
@@ -45,6 +46,7 @@ class PlotSaver:
         >>> html_path = saver.export_to_html()
         >>> print(f"HTML saved to: {html_path}")
     """
+
     SUPPORTED_IMAGE_TYPES = {"png", "jpeg", "webp", "svg", "pdf", "eps", "html"}
 
     def __init__(
@@ -52,7 +54,7 @@ class PlotSaver:
         fig: go.Figure,
         file_name: str,
         image_type: str,
-        base_path: Union[str, pathlib.Path] = "images",
+        base_path: str | pathlib.Path = "images",
         recurring: bool = False,
         scale: int = 6,
         width: int = 600,
@@ -64,10 +66,7 @@ class PlotSaver:
         if not isinstance(file_name, str) or not file_name:
             raise TypeError("`file_name` must be a non-empty string.")
         if image_type.lower() not in self.SUPPORTED_IMAGE_TYPES:
-            raise ValueError(
-                f"`image_type` must be one of {self.SUPPORTED_IMAGE_TYPES}. "
-                f"Got '{image_type}'."
-            )
+            raise ValueError(f"`image_type` must be one of {self.SUPPORTED_IMAGE_TYPES}. Got '{image_type}'.")
         for name, val in [("scale", scale), ("width", width), ("height", height)]:
             if not isinstance(val, int):
                 raise TypeError(f"`{name}` must be an integer.")
@@ -87,10 +86,10 @@ class PlotSaver:
         """
         # Ensure the target directory exists
         self.base_path.mkdir(parents=True, exist_ok=True)
-        
+
         # Sanitize extension
         clean_extension = extension.lstrip(".").lower()
-        
+
         save_path = self.base_path / f"{self.file_name}.{clean_extension}"
 
         if self.recurring:
@@ -103,7 +102,7 @@ class PlotSaver:
             # If not recurring, simply overwrite by deleting the old file first
             # Note: write_image/write_html would overwrite anyway, but this is explicit.
             save_path.unlink()
-            
+
         return save_path
 
     def save(self) -> pathlib.Path:
@@ -114,24 +113,14 @@ class PlotSaver:
             pathlib.Path: The absolute path to the saved image file.
         """
         file_path = self._get_save_path(self.image_type)
-        
-        self.fig.write_image(
-            file_path,
-            scale=self.scale,
-            width=self.width,
-            height=self.height,
-            engine="kaleido"
-        )
-        
+
+        self.fig.write_image(file_path, scale=self.scale, width=self.width, height=self.height, engine="kaleido")
+
         abs_path = file_path.resolve()
         print(f"Figure saved to: {abs_path}")
         return abs_path
 
-    def export_to_html(
-        self,
-        full_html: bool = True,
-        include_plotly_js: str = "cdn"
-    ) -> pathlib.Path:
+    def export_to_html(self, full_html: bool = True, include_plotly_js: str = "cdn") -> pathlib.Path:
         """
         Exports the figure as an interactive HTML file.
 
@@ -151,8 +140,8 @@ class PlotSaver:
             file_path,
             full_html=full_html,
             include_plotlyjs=include_plotly_js,
-            config={'scrollZoom': True, 'responsive': True},
-            auto_open=False
+            config={"scrollZoom": True, "responsive": True},
+            auto_open=False,
         )
 
         abs_path = file_path.resolve()
@@ -160,18 +149,16 @@ class PlotSaver:
         return abs_path
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # This block demonstrates how to use the improved class.
     # It will only run when the script is executed directly.
-    import plotly.express as px
     import shutil
+
+    import plotly.express as px
 
     # 1. Create a sample figure
     df = px.data.iris()
-    fig = px.scatter(
-        df, x="sepal_width", y="sepal_length", color="species",
-        title="Iris Dataset Scatter Plot"
-    )
+    fig = px.scatter(df, x="sepal_width", y="sepal_length", color="species", title="Iris Dataset Scatter Plot")
 
     print("--- Demo: Basic Save (PNG) ---")
     # This will create a 'plots' directory if it doesn't exist.

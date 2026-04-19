@@ -1,7 +1,7 @@
 import webbrowser
 
 import dash
-from dash import dcc, html, Input, Output
+from dash import Input, Output, dcc, html
 
 from ukhpi.core.sparql import SparqlQuery
 from ukhpi.plotting.hpi_plots import HousePriceIndexPlots
@@ -33,51 +33,54 @@ TABS = {
         "Sales Volume by Build Types": "plot_sales_volume_by_build_types",
         "Sales Volume by Payment Types": "plot_sales_volume_by_payment_types",
         "Sales Volume by Property Types": "plot_sales_volume_by_property_types",
-        
     },
     "% Annual Change": {
         "Change by Build Types": "plot_percentage_annual_change_by_build_types",
         "Change by Occupant Types": "plot_percentage_annual_change_by_occupant_types",
         "Change by Payment Types": "plot_percentage_annual_change_by_payment_types",
         "Change by Property Types": "plot_percentage_annual_change_by_property_types",
-    }
+    },
 }
 
-REGION_OPTIONS=[{"label": r.title(), "value": r} for r in REGIONS]
+REGION_OPTIONS = [{"label": r.title(), "value": r} for r in REGIONS]
 
 # --- Layout ---
 app.layout = html.Div(
     style={
-        "backgroundColor": "#111111",   # dark dashboard background
-        "color": "#f0f0f0",             # default font color
+        "backgroundColor": "#111111",  # dark dashboard background
+        "color": "#f0f0f0",  # default font color
         "minHeight": "100vh",
-        "padding": "20px"
+        "padding": "20px",
     },
     children=[
-        html.H1("UK House Price Index Dashboard", 
-                style={"textAlign": "center", "color": "#f0f0f0"}),
-
-        html.Div([
-            html.Label("Select Region:", style={"fontWeight": "bold", "color": "#f0f0f0"}),
-            dcc.Dropdown(
-                        id="region-dropdown",
-                        options=REGION_OPTIONS,
-                        value=DEFAULT_REGION,
-                        className="dark-dropdown"   # 🔑 custom class
-                    ),
-        ], style={"width": "25%", "display": "inline-block"}),
-
-        html.Div([
-            html.Label("Year Range:", style={"fontWeight": "bold", "color": "#f0f0f0"}),
-            dcc.RangeSlider(
-                id="year-slider",
-                min=1995, max=2025, step=1,
-                value=[DEFAULT_START, DEFAULT_END],
-                marks={y: str(y) for y in range(1995, 2026, 5)},
-                tooltip={"placement": "bottom", "always_visible": False}
-            ),
-        ], style={"marginTop": "20px"}),
-
+        html.H1("UK House Price Index Dashboard", style={"textAlign": "center", "color": "#f0f0f0"}),
+        html.Div(
+            [
+                html.Label("Select Region:", style={"fontWeight": "bold", "color": "#f0f0f0"}),
+                dcc.Dropdown(
+                    id="region-dropdown",
+                    options=REGION_OPTIONS,
+                    value=DEFAULT_REGION,
+                    className="dark-dropdown",  # 🔑 custom class
+                ),
+            ],
+            style={"width": "25%", "display": "inline-block"},
+        ),
+        html.Div(
+            [
+                html.Label("Year Range:", style={"fontWeight": "bold", "color": "#f0f0f0"}),
+                dcc.RangeSlider(
+                    id="year-slider",
+                    min=1995,
+                    max=2025,
+                    step=1,
+                    value=[DEFAULT_START, DEFAULT_END],
+                    marks={y: str(y) for y in range(1995, 2026, 5)},
+                    tooltip={"placement": "bottom", "always_visible": False},
+                ),
+            ],
+            style={"marginTop": "20px"},
+        ),
         dcc.Tabs(
             id="tabs",
             value="Average Prices",
@@ -86,43 +89,39 @@ app.layout = html.Div(
             colors={
                 "border": "#444",
                 "primary": "#444",  # active tab border
-                "background": "#222222"
-            }
+                "background": "#222222",
+            },
         ),
-
-        html.Div(id="tab-content", style={"marginTop": "20px"})
-    ]
+        html.Div(id="tab-content", style={"marginTop": "20px"}),
+    ],
 )
-
 
 
 # --- Tab content callback ---
-@app.callback(
-    Output("tab-content", "children"),
-    Input("tabs", "value")
-)
+@app.callback(Output("tab-content", "children"), Input("tabs", "value"))
 def render_tab(tab_name):
-    return html.Div([
-        html.Label("Select Plot:"),
-        dcc.Dropdown(
-            id=f"plot-dropdown-{tab_name}",
-            options=[{"label": k, "value": k} for k in TABS[tab_name].keys()],
-            value=list(TABS[tab_name].keys())[0]
-        ),
-        dcc.Loading(
-            dcc.Graph(id=f"graph-{tab_name}"),
-            type="circle"
-        )
-    ])
+    return html.Div(
+        [
+            html.Label("Select Plot:"),
+            dcc.Dropdown(
+                id=f"plot-dropdown-{tab_name}",
+                options=[{"label": k, "value": k} for k in TABS[tab_name].keys()],
+                value=list(TABS[tab_name].keys())[0],
+            ),
+            dcc.Loading(dcc.Graph(id=f"graph-{tab_name}"), type="circle"),
+        ]
+    )
+
 
 # --- Figure callbacks, one per tab ---
 for tab_name, mapping in TABS.items():
+
     @app.callback(
         Output(f"graph-{tab_name}", "figure"),
         Input("region-dropdown", "value"),
         Input(f"plot-dropdown-{tab_name}", "value"),
         Input("year-slider", "value"),
-        prevent_initial_call="initial_duplicate"
+        prevent_initial_call="initial_duplicate",
     )
     def update_graph(region, plot_choice, year_range, mapping=mapping):
         start, end = year_range
@@ -131,20 +130,17 @@ for tab_name, mapping in TABS.items():
         plot_func = getattr(hpi_plots, method_name)
         return plot_func()
 
+
 def open_browser(port):
     """Open browser after a short delay."""
     webbrowser.open_new(f"http://127.0.0.1:{port}/")
+
 
 if __name__ == "__main__":
     PORT = 8054
     open_browser(PORT)
     # Optional: Automatically open browser
-    #Timer(1, open_browser).start()
-    
-    # Run the app
-    app.run(
-        debug=True,
-        host="127.0.0.1",
-        port=PORT
-    )
+    # Timer(1, open_browser).start()
 
+    # Run the app
+    app.run(debug=True, host="127.0.0.1", port=PORT)

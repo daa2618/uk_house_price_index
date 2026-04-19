@@ -1,64 +1,96 @@
-from helper_tools.zipfile_ops.extract_zipfile import ExtractZipFile #type:ignore
+from __future__ import annotations
+
+import io
+import sqlite3
+import zipfile
 from pathlib import Path
-from helper_tools.request_soup_data.db_ops.more_sqlite.df2db import Df2Db #type:ignore
-from typing import Optional
+
+import pandas as pd
+import requests
+
+from ukhpi.loggers import BasicLogger
+
+_log = BasicLogger(verbose=True, log_directory=None, logger_name="POSTCODE_LOOKUPS")
 
 
-def extract_from_url_and_create_sqlite_db(url:str, 
-                                         db_directory:Path,
-                                         db_name:str = None,
-                                         verbose:bool=True,
-                                         table_name:str = None)->Optional[Path]:
-    print(f"Extracting data from {url}")
+def _download_and_extract_zip(url: str, extract_to: Path) -> Path | None:
+    """Download a ZIP file from `url` and extract its first data member into `extract_to`.
+    Returns the path of the extracted file, or None on failure.
+    """
+    extract_to.mkdir(parents=True, exist_ok=True)
+    resp = requests.get(url, timeout=60)
+    resp.raise_for_status()
+    with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
+        members = [m for m in zf.namelist() if not m.endswith("/")]
+        if not members:
+            return None
+        member = members[0]
+        zf.extract(member, path=extract_to)
+        return extract_to / member
+
+
+def _dataframe_to_sqlite(df: pd.DataFrame, db_path: Path, table_name: str) -> None:
+    with sqlite3.connect(db_path) as conn:
+        df.to_sql(table_name, conn, if_exists="replace", index=False)
+
+
+def extract_from_url_and_create_sqlite_db(
+    url: str,
+    db_directory: Path,
+    db_name: str | None = None,
+    verbose: bool = True,
+    table_name: str | None = None,
+) -> Path | None:
+    _log.info(f"Extracting data from {url}")
     try:
-        zip_extractor = ExtractZipFile(url = url, 
-                                       extract_to_folder=Path("."))
-    
-        extracted_file_path = zip_extractor.extract_zip_file_to_folder
-    except Exception as e:
-        print("Extraction failed")
-        print(e)
-        return 
+        extracted_file_path = _download_and_extract_zip(url, Path("."))
+    except Exception as exc:
+        _log.debug(f"Extraction failed: {exc}")
+        return None
 
     if not extracted_file_path:
-        print("Extraction failed")
-        return
-    
-        
+        _log.debug("Extraction failed: no members in archive")
+        return None
 
-    print(f"The data was successfully extracted to {extracted_file_path}")
+    _log.info(f"The data was successfully extracted to {extracted_file_path}")
 
-    db_name = db_name if db_name else extracted_file_path.stem.upper().replace(" ", "_")
-
+    stem = extracted_file_path.stem.upper().replace(" ", "_")
+    db_name = db_name or stem
+    if not db_name.endswith(".db"):
+        db_name = f"{db_name}.db"
     db_directory.mkdir(parents=True, exist_ok=True)
-    df2db = Df2Db(db_directory=db_directory, 
-     db_name=db_name,
-     verbose = verbose,
-     df_file_path=extracted_file_path)
+    db_path = db_directory / db_name
 
-    table_name = table_name if table_name else db_name.rstrip(".db").upper().replace(" ", "_")
+    table_name = table_name or Path(db_name).stem.upper().replace(" ", "_")
 
-    print(f"Adding the extracted data to the database as table name: '{table_name}'")
+    _log.info(f"Adding the extracted data to the database as table name: '{table_name}'")
     try:
-    
-        df2db.add_df_to_db_using_sqlalchemy(table_name)
+        df = pd.read_csv(extracted_file_path, low_memory=False)
+        _dataframe_to_sqlite(df, db_path, table_name)
         extracted_file_path.unlink()
-        return db_directory/db_name if db_name.endswith(".db") else db_directory/f"{db_name}.db"
+        return db_path
+    except Exception as exc:
+        _log.debug(f"Failed to create sqlite database: {exc}")
+        return None
 
-    except Exception as e:
-        print("Failed to create sqlite database")
-        print(e)
-        return
 
-    
+def query_sqlite(db_path: Path, query: str) -> list[dict]:
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(query).fetchall()
+        return [dict(r) for r in rows]
+
+
 if __name__ == "__main__":
     postcode_lookups_url = "https://www.arcgis.com/sharing/rest/content/items/128bd4b2ad024512beadaf130385d8f8/data"
-    db_path = extract_from_url_and_create_sqlite_db(postcode_lookups_url, 
-                                                    db_directory=Path("./data/sqlite_dbs"),
-                                                    db_name="postcode_lookups",
-                                                    verbose=True,
-                                                    table_name="POSTCODE_LOOKUPS")
+    db_path = extract_from_url_and_create_sqlite_db(
+        postcode_lookups_url,
+        db_directory=Path("./data/sqlite_dbs"),
+        db_name="postcode_lookups",
+        verbose=True,
+        table_name="POSTCODE_LOOKUPS",
+    )
     if db_path:
-        print(f"The sqlite database is available at {db_path}")
+        _log.info(f"The sqlite database is available at {db_path}")
     else:
-        print("Failed to create the sqlite database")
+        _log.debug("Failed to create the sqlite database")

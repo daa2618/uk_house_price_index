@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from SPARQLWrapper import SPARQLWrapper, JSON
-from typing import Dict, Any
-import pandas as pd
 from pathlib import Path
+from typing import Any
 
-from ukhpi.text import make_snake_from_camel
+import pandas as pd
+from SPARQLWrapper import JSON, SPARQLWrapper
+
 from ukhpi.io.loader import Dataset
 from ukhpi.io.versioning import FileVersion
 from ukhpi.loggers import BasicLogger
+from ukhpi.text import make_snake_from_camel
 
 _PACKAGE_DIR = Path(__file__).resolve().parent.parent
+
 
 class SparqlQuery:
     _PREFIX = """
@@ -25,32 +27,62 @@ class SparqlQuery:
             PREFIX lrcommon: <http://landregistry.data.gov.uk/def/common/>
             """
 
-
-    _COLUMNS = ['_about', 'averagePrice', 'averagePriceDetached', 'averagePriceExistingProperty', 
-            'averagePriceFlatMaisonette', 'averagePriceNewBuild', 'averagePriceSA', 'averagePriceSemiDetached', 
-            'averagePriceTerraced', 'dataSet', 'housePriceIndex', 'housePriceIndexDetached', 
-            'housePriceIndexExistingProperty', 'housePriceIndexFlatMaisonette', 'housePriceIndexNewBuild', 
-            'housePriceIndexSA', 'housePriceIndexSemiDetached', 'housePriceIndexTerraced', 'percentageAnnualChange', 
-            'percentageAnnualChangeDetached', 'percentageAnnualChangeExistingProperty', 'percentageAnnualChangeFlatMaisonette', 
-            'percentageAnnualChangeNewBuild', 'percentageAnnualChangeSemiDetached', 'percentageAnnualChangeTerraced', 
-            'percentageChange', 'percentageChangeDetached', 'percentageChangeExistingProperty', 'percentageChangeFlatMaisonette', 
-            'percentageChangeNewBuild', 'percentageChangeSemiDetached', 'percentageChangeTerraced', 'refMonth', 
-            'refPeriodDuration', 'refPeriodStart', 'refRegion', 'salesVolume', 'salesVolumeExistingProperty',
-            'salesVolumeNewBuild', 'salesVolumeDetached',
-            'salesVolumeFlatMaisonette',
-            'salesVolumeSemiDetached',
-            'salesVolumeTerraced', 'salesVolumeCash', 'salesVolumeMortgage', 'type']
+    _COLUMNS = [
+        "_about",
+        "averagePrice",
+        "averagePriceDetached",
+        "averagePriceExistingProperty",
+        "averagePriceFlatMaisonette",
+        "averagePriceNewBuild",
+        "averagePriceSA",
+        "averagePriceSemiDetached",
+        "averagePriceTerraced",
+        "dataSet",
+        "housePriceIndex",
+        "housePriceIndexDetached",
+        "housePriceIndexExistingProperty",
+        "housePriceIndexFlatMaisonette",
+        "housePriceIndexNewBuild",
+        "housePriceIndexSA",
+        "housePriceIndexSemiDetached",
+        "housePriceIndexTerraced",
+        "percentageAnnualChange",
+        "percentageAnnualChangeDetached",
+        "percentageAnnualChangeExistingProperty",
+        "percentageAnnualChangeFlatMaisonette",
+        "percentageAnnualChangeNewBuild",
+        "percentageAnnualChangeSemiDetached",
+        "percentageAnnualChangeTerraced",
+        "percentageChange",
+        "percentageChangeDetached",
+        "percentageChangeExistingProperty",
+        "percentageChangeFlatMaisonette",
+        "percentageChangeNewBuild",
+        "percentageChangeSemiDetached",
+        "percentageChangeTerraced",
+        "refMonth",
+        "refPeriodDuration",
+        "refPeriodStart",
+        "refRegion",
+        "salesVolume",
+        "salesVolumeExistingProperty",
+        "salesVolumeNewBuild",
+        "salesVolumeDetached",
+        "salesVolumeFlatMaisonette",
+        "salesVolumeSemiDetached",
+        "salesVolumeTerraced",
+        "salesVolumeCash",
+        "salesVolumeMortgage",
+        "type",
+    ]
 
     # SELECT line
     _SELECT_CLAUSE = "SELECT DISTINCT\n  " + "\n  ".join(f"?{col}" for col in _COLUMNS)
 
     # OPTIONAL lines
-    _OPTIONAL_CLAUSE = "\n".join(
-        f"  OPTIONAL {{ ?_about ukhpi:{col} ?{col} }}" 
-        for col in _COLUMNS if col != "_about"
-    )
+    _OPTIONAL_CLAUSE = "\n".join(f"  OPTIONAL {{ ?_about ukhpi:{col} ?{col} }}" for col in _COLUMNS if col != "_about")
 
-    def __init__(self, endpoint_url:str = "http://landregistry.data.gov.uk/landregistry/query", verbose:bool = False):
+    def __init__(self, endpoint_url: str = "http://landregistry.data.gov.uk/landregistry/query", verbose: bool = False):
         """
         Initializes the SparqlQuery object.
 
@@ -58,23 +90,22 @@ class SparqlQuery:
         self.endpoint_url = endpoint_url
         self.verbose = verbose
         self._hpi_regions = None
-        self._logger = BasicLogger(logger_name = "SPARQLQUERY", verbose=False, log_directory=None)
+        self._logger = BasicLogger(logger_name="SPARQLQUERY", verbose=False, log_directory=None)
 
-
-    def build_query_for_region(self, region: str=None, start_year: int = 2020, end_year: int=2024) -> str:
+    def build_query_for_region(self, region: str = None, start_year: int = 2020, end_year: int = 2024) -> str:
         start_year_str = f"{start_year}-01-01"
         end_year_str = f"{end_year}-12-01"
-        
-        FILTER_CLAUSE = f"""    
+
+        FILTER_CLAUSE = f"""
         FILTER ( ?refPeriodStart >= "{start_year_str}"^^xsd:date  &&
                      ?refPeriodStart <= "{end_year_str}"^^xsd:date
                     )
         """
         if region:
             region_lower = region.lower().replace(" ", "-")
-            FILTER_CLAUSE = f"""    
+            FILTER_CLAUSE = f"""
         FILTER ( ?refPeriodStart >= "{start_year_str}"^^xsd:date  &&
-                     ?refPeriodStart <= "{end_year_str}"^^xsd:date && 
+                     ?refPeriodStart <= "{end_year_str}"^^xsd:date &&
                      ?refRegion IN (<http://landregistry.data.gov.uk/id/region/{region_lower}>)
                     )
         """
@@ -87,15 +118,14 @@ class SparqlQuery:
             {self._OPTIONAL_CLAUSE}
 
             {FILTER_CLAUSE}
-            
+
             }}"""
         return query
 
-    
-    def build_query_for_postcode(self, postcode:str)->str:
+    def build_query_for_postcode(self, postcode: str) -> str:
         postcode = postcode.upper()
         return f"""
-                SELECT ?transx ?addr ?paon ?saon ?street ?town ?county ?postcode 
+                SELECT ?transx ?addr ?paon ?saon ?street ?town ?county ?postcode
                     ?amount ?date ?category ?recordStatus ?propertyType ?estateType ?transactionId
                 WHERE {{
                 VALUES ?postcode {{ "{postcode}"^^xsd:string }}
@@ -123,16 +153,14 @@ class SparqlQuery:
 
                 """
 
-    def fetch_sparql_query(self, sparql_query:str)->Dict[str,Any]:
-        """Fetches data from a SPARQL endpoint using the provided query.
-
-        """
+    def fetch_sparql_query(self, sparql_query: str) -> dict[str, Any]:
+        """Fetches data from a SPARQL endpoint using the provided query."""
         if not sparql_query.startswith(self._PREFIX):
             sparql_query = self._PREFIX + sparql_query
 
         # Run the query
         if self.verbose:
-            self._logger.info(f"Running SPARQL query: {sparql_query} from {self.endpoint_url}") 
+            self._logger.info(f"Running SPARQL query: {sparql_query} from {self.endpoint_url}")
 
         sparql = SPARQLWrapper(self.endpoint_url)
         sparql.setQuery(sparql_query)
@@ -169,9 +197,8 @@ class SparqlQuery:
                     continue
 
         return df
-    
 
-    def _fetch_hpi_regions(self)->pd.DataFrame:
+    def _fetch_hpi_regions(self) -> pd.DataFrame:
         """Fetches the list of regions from the SPARQL endpoint.
 
         Returns:
@@ -187,7 +214,7 @@ class SparqlQuery:
             OPTIONAL { ?refRegion rdfs:label ?regionLabel }
             OPTIONAL { ?refRegion rdf:type ?regionType }
 
-            
+
         }
         ORDER BY ?refRegion
 
@@ -195,34 +222,30 @@ class SparqlQuery:
 
         results = self.fetch_sparql_query(query)
         df = self.make_data_from_results(results)
-        hpi_regions = (
-                    df.
-                    assign(
-                        ref_region_keyword = df["ref_region"].str.split("/").str[-1],
-                        ref_region_type_keyword = df["region_type"].str.split("/").str[-1]
-                    )
-                )
+        hpi_regions = df.assign(
+            ref_region_keyword=df["ref_region"].str.split("/").str[-1],
+            ref_region_type_keyword=df["region_type"].str.split("/").str[-1],
+        )
         return hpi_regions
-    
-    @property
-    def HPI_REGIONS(self)->pd.DataFrame:
-        if self._hpi_regions is None:
 
-            file = FileVersion(base_path=_PACKAGE_DIR / "cache" / "region_data",
-                            file_name="hpi_regions_",
-                            extension="csv")
+    @property
+    def HPI_REGIONS(self) -> pd.DataFrame:
+        if self._hpi_regions is None:
+            file = FileVersion(
+                base_path=_PACKAGE_DIR / "cache" / "region_data", file_name="hpi_regions_", extension="csv"
+            )
             file_path = file.latest_file_path
             if file_path:
-                data = Dataset(file_path = file_path).load_data()
+                data = Dataset(file_path=file_path).load_data()
             else:
                 data = file.load_latest_file(self, "_fetch_hpi_regions", False)
             if not data:
                 return pd.DataFrame()
 
             self._hpi_regions = pd.DataFrame(data)
-        return self._hpi_regions    
-    
-    def _get_price_paid_data_for_postcode(self, postcode:str)->pd.DataFrame:
+        return self._hpi_regions
+
+    def _get_price_paid_data_for_postcode(self, postcode: str) -> pd.DataFrame:
         """Fetches price paid data for a given postcode.
 
         Args:
@@ -234,30 +257,19 @@ class SparqlQuery:
         query = self.build_query_for_postcode(postcode)
         results = self.fetch_sparql_query(query)
         return self.make_data_from_results(results)
-    
 
-    def get_price_paid_data_for_postcode(self, postcode:str)->pd.DataFrame:
-        file = FileVersion(base_path=_PACKAGE_DIR / "cache" / "postcode_data",
-                            file_name=f"price_paid_{postcode.upper().replace(' ', '')}_",
-                            extension="csv")
+    def get_price_paid_data_for_postcode(self, postcode: str) -> pd.DataFrame:
+        file = FileVersion(
+            base_path=_PACKAGE_DIR / "cache" / "postcode_data",
+            file_name=f"price_paid_{postcode.upper().replace(' ', '')}_",
+            extension="csv",
+        )
         file_path = file.latest_file_path
         if file_path:
-            data = Dataset(file_path = file_path).load_data()
+            data = Dataset(file_path=file_path).load_data()
         else:
             data = file.load_latest_file(self, "_get_price_paid_data_for_postcode", False, postcode=postcode)
         if not data:
             return pd.DataFrame()
 
         return pd.DataFrame(data)
-    
-
-    
-    
-
-
-        
-        
-    
-
-
-

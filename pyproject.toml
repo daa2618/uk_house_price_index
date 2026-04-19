@@ -24,6 +24,11 @@ dependencies = [
     "nbformat (>=5.10.4,<6.0.0)"
 ]
 
+[project.scripts]
+ukhpi-dashboard = "ukhpi.dashboard.app_improved:main"
+ukhpi-collect = "ukhpi.core.collection:main"
+ukhpi-gallery = "ukhpi.plotting.generator:main"
+
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -38,10 +43,13 @@ dev = [
 
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
+# E501 (line too long) is intentionally ignored: `ruff format` wraps code lines,
+# and the remaining violations are docstring prose where re-wrapping hurts readability.
+ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
