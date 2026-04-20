@@ -1,15 +1,22 @@
 from __future__ import annotations
 
+from urllib.parse import parse_qs, urlencode
+
 import dash
 import dash_mantine_components as dmc
+import pandas as pd
 from dash import Input, Output, State, dcc, html, no_update
 
-from ukhpi.dashboard.components import build_kpi_row
+from ukhpi.dashboard.annotations import apply_historical_events
+from ukhpi.dashboard.components import build_kpi_row, postcode_tab_layout, render_postcode_content
 from ukhpi.dashboard.tabs import (
     DEFAULT_GEO_LEVEL,
     DEFAULT_MAP_METRIC,
+    DEFAULT_PERIOD_MODE,
     GEO_LEVELS,
+    MAX_COMPARE_REGIONS,
     MONTH_OPTIONS,
+    PERIOD_MODE_OPTIONS,
     TAB_CONFIG,
 )
 from ukhpi.geo.ops import GeoOps
@@ -47,8 +54,58 @@ def _get_geo_ops(start: int, end: int) -> GeoOps:
     return _geo_ops
 
 
-def _plot_selector(tab_slug: str) -> html.Div:
+def _region_label(region: str | None) -> str:
+    if not region:
+        return ""
+    return region.replace("-", " ").title()
+
+
+def _build_figure(region: str, method_name: str, start: int, end: int):
+    hpi = HousePriceIndexPlots(start_year=start, end_year=end, region=region)
+    return getattr(hpi, method_name)()
+
+
+def _plot_selector(tab_slug: str, annotations_on: bool = True) -> html.Div:
     plots = TAB_CONFIG[tab_slug]["plots"]
+    header_children = [
+        html.Label(
+            "📊 Select Visualization:",
+            style={"color": "#ecf0f1", "fontWeight": "600", "fontSize": "16px", "margin": "0"},
+        ),
+        dcc.Dropdown(
+            id={"role": "plot-dropdown", "tab": tab_slug},
+            options=[{"label": f"📈 {k}", "value": k} for k in plots.keys()],
+            value=next(iter(plots.keys())),
+            style={"minWidth": "300px", "flex": "1"},
+            clearable=False,
+        ),
+    ]
+    if tab_slug == "annual_change":
+        header_children.append(
+            dmc.SegmentedControl(
+                id="period-mode",
+                data=PERIOD_MODE_OPTIONS,
+                value=DEFAULT_PERIOD_MODE,
+                size="sm",
+            )
+        )
+    header_children.append(
+        dmc.Switch(
+            id="annotations-toggle",
+            label="Historical events",
+            checked=bool(annotations_on),
+            size="sm",
+        )
+    )
+    header_children.append(
+        dmc.Button(
+            "⬇ Download CSV",
+            id={"role": "download-csv-btn", "tab": tab_slug},
+            size="sm",
+            variant="light",
+            color="blue",
+        )
+    )
     return html.Div(
         className="graph-container",
         children=[
@@ -60,20 +117,8 @@ def _plot_selector(tab_slug: str) -> html.Div:
                 },
                 children=[
                     html.Div(
-                        style={"display": "flex", "alignItems": "center", "gap": "15px"},
-                        children=[
-                            html.Label(
-                                "📊 Select Visualization:",
-                                style={"color": "#ecf0f1", "fontWeight": "600", "fontSize": "16px", "margin": "0"},
-                            ),
-                            dcc.Dropdown(
-                                id={"role": "plot-dropdown", "tab": tab_slug},
-                                options=[{"label": f"📈 {k}", "value": k} for k in plots.keys()],
-                                value=next(iter(plots.keys())),
-                                style={"minWidth": "300px", "flex": "1"},
-                                clearable=False,
-                            ),
-                        ],
+                        style={"display": "flex", "alignItems": "center", "gap": "15px", "flexWrap": "wrap"},
+                        children=header_children,
                     )
                 ],
             ),
@@ -239,12 +284,15 @@ def register_callbacks(app: dash.Dash) -> None:
         Output("tab-content", "children"),
         Input("tabs", "value"),
         State("year-slider", "value"),
+        State("annotations-store", "data"),
     )
-    def render_tab(tab_slug: str, year_range):
+    def render_tab(tab_slug: str, year_range, annotations_on):
         if tab_slug == "map":
             end = (year_range or [None, None])[1] or 2024
             return _map_tab(default_year=end)
-        return _plot_selector(tab_slug)
+        if tab_slug == "postcode":
+            return postcode_tab_layout()
+        return _plot_selector(tab_slug, annotations_on=annotations_on if annotations_on is not None else True)
 
     @app.callback(
         Output({"role": "graph", "tab": dash.MATCH}, "figure"),
@@ -252,16 +300,152 @@ def register_callbacks(app: dash.Dash) -> None:
         Input({"role": "plot-dropdown", "tab": dash.MATCH}, "value"),
         Input("year-slider", "value"),
         Input("theme-store", "data"),
+        Input("period-mode-store", "data"),
+        Input("compare-toggle", "checked"),
+        Input("compare-regions", "value"),
+        Input("annotations-store", "data"),
         State({"role": "plot-dropdown", "tab": dash.MATCH}, "id"),
         prevent_initial_call="initial_duplicate",
     )
-    def update_graph(region, plot_choice, year_range, theme, dropdown_id):
+    def update_graph(
+        region, plot_choice, year_range, theme, period_mode, compare_on, compare_list, annotations_on, dropdown_id
+    ):
         tab_slug = dropdown_id["tab"]
         method_name = TAB_CONFIG[tab_slug]["plots"][plot_choice]
+        if tab_slug == "annual_change" and period_mode == "period":
+            method_name = method_name.replace("percentage_annual_change", "percentage_change")
         start, end = year_range
-        hpi_plots = HousePriceIndexPlots(start_year=start, end_year=end, region=region)
-        fig = getattr(hpi_plots, method_name)()
-        return _apply_dashboard_theme(fig, theme=theme or "dark")
+        fig = _build_figure(region, method_name, start, end)
+
+        extra_regions = [r for r in (compare_list or []) if r and r != region] if compare_on else []
+        if extra_regions:
+            for trace in fig.data:
+                trace.name = f"{_region_label(region)} · {trace.name}"
+            for extra in extra_regions[:MAX_COMPARE_REGIONS]:
+                extra_fig = _build_figure(extra, method_name, start, end)
+                for trace in extra_fig.data:
+                    trace.name = f"{_region_label(extra)} · {trace.name}"
+                    fig.add_trace(trace)
+        fig = _apply_dashboard_theme(fig, theme=theme or "dark")
+        return apply_historical_events(fig, enabled=bool(annotations_on))
+
+    @app.callback(
+        Output("period-mode-store", "data"),
+        Input("period-mode", "value"),
+        prevent_initial_call=True,
+    )
+    def sync_period_mode(value):
+        return value or DEFAULT_PERIOD_MODE
+
+    @app.callback(
+        Output("annotations-store", "data"),
+        Input("annotations-toggle", "checked"),
+        prevent_initial_call=True,
+    )
+    def sync_annotations(checked):
+        return bool(checked)
+
+    @app.callback(
+        Output("compare-regions-wrapper", "style"),
+        Input("compare-toggle", "checked"),
+    )
+    def toggle_compare_visibility(checked):
+        return {"display": "block", "marginTop": "8px"} if checked else {"display": "none"}
+
+    @app.callback(
+        Output("download-csv", "data"),
+        Input({"role": "download-csv-btn", "tab": dash.ALL}, "n_clicks"),
+        State("region-dropdown", "value"),
+        State("year-slider", "value"),
+        State("compare-toggle", "checked"),
+        State("compare-regions", "value"),
+        prevent_initial_call=True,
+    )
+    def export_csv(n_clicks_list, region, year_range, compare_on, compare_list):
+        if not any(n_clicks_list or []):
+            return no_update
+        start, end = year_range
+        regions = [region]
+        if compare_on:
+            regions.extend(r for r in (compare_list or []) if r and r != region)
+        frames = []
+        for r in regions:
+            df = HousePriceIndexPlots(start_year=start, end_year=end, region=r).hpi_df.copy()
+            if df.empty:
+                continue
+            df.insert(0, "region", r)
+            frames.append(df)
+        if not frames:
+            return no_update
+        combined = pd.concat(frames, ignore_index=True)
+        filename = f"ukhpi_{'-'.join(regions)}_{start}_{end}.csv"
+        return dcc.send_data_frame(combined.to_csv, filename, index=False)
+
+    @app.callback(
+        Output("region-dropdown", "value", allow_duplicate=True),
+        Output("year-slider", "value", allow_duplicate=True),
+        Output("tabs", "value", allow_duplicate=True),
+        Input("url", "search"),
+        State("region-dropdown", "value"),
+        State("year-slider", "value"),
+        State("tabs", "value"),
+        prevent_initial_call="initial_duplicate",
+    )
+    def load_url_state(search, cur_region, cur_year, cur_tab):
+        if not search:
+            return no_update, no_update, no_update
+        params = parse_qs(search.lstrip("?"))
+        region = params.get("region", [None])[0]
+        start = params.get("start", [None])[0]
+        end = params.get("end", [None])[0]
+        tab = params.get("tab", [None])[0]
+
+        region_out = region if region and region != cur_region else no_update
+        try:
+            year_out = [int(start), int(end)] if start and end and [int(start), int(end)] != cur_year else no_update
+        except ValueError:
+            year_out = no_update
+        tab_out = tab if tab and tab in TAB_CONFIG and tab != cur_tab else no_update
+        return region_out, year_out, tab_out
+
+    @app.callback(
+        Output("url", "search"),
+        Input("region-dropdown", "value"),
+        Input("year-slider", "value"),
+        Input("tabs", "value"),
+        prevent_initial_call=True,
+    )
+    def save_url_state(region, year_range, tab):
+        start, end = year_range or [None, None]
+        query = {"region": region, "start": start, "end": end, "tab": tab}
+        query = {k: v for k, v in query.items() if v is not None}
+        return "?" + urlencode(query) if query else ""
+
+    @app.callback(
+        Output("compare-regions", "value"),
+        Input("compare-regions", "value"),
+        Input("region-dropdown", "value"),
+        prevent_initial_call=True,
+    )
+    def enforce_compare_constraints(current, primary):
+        filtered = [v for v in (current or []) if v and v != primary][:MAX_COMPARE_REGIONS]
+        if filtered == (current or []):
+            return no_update
+        return filtered
+
+    @app.callback(
+        Output("postcode-content", "children"),
+        Input("postcode-fetch-btn", "n_clicks"),
+        Input("postcode-input", "n_submit"),
+        State("postcode-input", "value"),
+        State("theme-store", "data"),
+        prevent_initial_call=True,
+    )
+    def fetch_postcode(_n, _submit, postcode, theme):
+        def _theme(fig):
+            return _apply_dashboard_theme(fig, theme=theme or "dark")
+
+        return render_postcode_content(postcode, _theme)
 
     @app.callback(
         Output("kpi-row", "children"),

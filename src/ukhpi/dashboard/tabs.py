@@ -30,6 +30,7 @@ TAB_CONFIG: dict[str, dict] = {
             "Sales Volume by Build Types": "plot_sales_volume_by_build_types",
             "Sales Volume by Payment Types": "plot_sales_volume_by_payment_types",
             "Sales Volume by Property Types": "plot_sales_volume_by_property_types",
+            "Cash vs Mortgage Share": "plot_sales_volume_cash_vs_mortgage",
         },
     },
     "annual_change": {
@@ -43,6 +44,10 @@ TAB_CONFIG: dict[str, dict] = {
     },
     "map": {
         "label": "🗺️ Map",
+        "plots": {},
+    },
+    "postcode": {
+        "label": "🏠 Postcode",
         "plots": {},
     },
 }
@@ -69,6 +74,14 @@ MONTH_OPTIONS = [
     {"label": "December", "value": "12"},
 ]
 DEFAULT_MAP_METRIC = "average_price"
+
+PERIOD_MODE_OPTIONS = [
+    {"label": "Annual (YoY)", "value": "annual"},
+    {"label": "Period-over-period", "value": "period"},
+]
+DEFAULT_PERIOD_MODE = "annual"
+
+MAX_COMPARE_REGIONS = 3
 
 DEFAULT_TAB = "avg_prices"
 DEFAULT_REGION = "england"

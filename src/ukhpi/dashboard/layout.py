@@ -7,11 +7,13 @@ from ukhpi.core.sparql import SparqlQuery
 from ukhpi.dashboard.components import build_region_options, control_group
 from ukhpi.dashboard.tabs import (
     DEFAULT_END,
+    DEFAULT_PERIOD_MODE,
     DEFAULT_REGION,
     DEFAULT_START,
     DEFAULT_TAB,
     HPI_MAX_YEAR,
     HPI_MIN_YEAR,
+    MAX_COMPARE_REGIONS,
     TAB_CONFIG,
 )
 
@@ -87,6 +89,26 @@ def _controls() -> html.Div:
         searchable=True,
         style={"minWidth": "200px"},
     )
+    compare_toggle = dmc.Switch(
+        id="compare-toggle",
+        label="Compare regions",
+        checked=False,
+        size="sm",
+        mt=6,
+    )
+    compare_dropdown = html.Div(
+        id="compare-regions-wrapper",
+        style={"display": "none", "marginTop": "8px"},
+        children=dcc.Dropdown(
+            id="compare-regions",
+            options=REGION_OPTIONS,
+            multi=True,
+            value=[],
+            placeholder=f"Add up to {MAX_COMPARE_REGIONS} regions",
+            style={"minWidth": "250px"},
+        ),
+    )
+    region_group = html.Div(children=[region_dropdown, compare_toggle, compare_dropdown])
     year_slider = dcc.RangeSlider(
         id="year-slider",
         min=HPI_MIN_YEAR,
@@ -104,7 +126,7 @@ def _controls() -> html.Div:
                 style={"display": "flex", "flexWrap": "wrap", "gap": "20px", "alignItems": "flex-end"},
                 className="controls-row",
                 children=[
-                    control_group("Select Region", region_dropdown, flex="1", min_width="250px"),
+                    control_group("Select Region", region_group, flex="1", min_width="250px"),
                     control_group("Year Range", year_slider, flex="2", min_width="300px"),
                 ],
             )
@@ -147,7 +169,11 @@ def build_layout() -> dmc.MantineProvider:
         children=html.Div(
             className="main-container",
             children=[
+                dcc.Location(id="url", refresh=False),
                 dcc.Store(id="theme-store", storage_type="local", data="dark"),
+                dcc.Store(id="period-mode-store", data=DEFAULT_PERIOD_MODE),
+                dcc.Store(id="annotations-store", storage_type="local", data=True),
+                dcc.Download(id="download-csv"),
                 _header(),
                 _controls(),
                 _kpi_section(),

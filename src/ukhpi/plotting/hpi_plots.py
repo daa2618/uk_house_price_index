@@ -98,13 +98,10 @@ class HousePriceIndexPlots:
             df_melt = df_melt.loc[df_melt["variable"] != metric_lower].reset_index(drop=True)
 
         cat_plots.df = df_melt
-        colors_dict = dict(
-            zip(
-                df_melt["variable"].unique(),
-                px.colors.sample_colorscale(px.colors.qualitative.Vivid, df_melt["variable"].nunique()),
-                strict=False,
-            )
-        )
+        n_vars = df_melt["variable"].nunique()
+        palette = px.colors.qualitative.Vivid
+        sampled = [palette[0]] if n_vars <= 1 else px.colors.sample_colorscale(palette, n_vars)
+        colors_dict = dict(zip(df_melt["variable"].unique(), sampled, strict=False))
 
         fig = cat_plots.plot_by_categories(
             plot_type=plot_type,
@@ -181,3 +178,59 @@ class HousePriceIndexPlots:
 
     def plot_percentage_annual_change_by_property_types(self) -> go.Figure:
         return self._plot_percentage_annual_change("PROPERTY_TYPES")
+
+    def _plot_percentage_change(self, category: str) -> go.Figure:
+        return self._plot_metric("percentage_change", category)
+
+    def plot_percentage_change_by_build_types(self) -> go.Figure:
+        return self._plot_percentage_change("BUILD_TYPES")
+
+    def plot_percentage_change_by_occupant_types(self) -> go.Figure:
+        return self._plot_percentage_change("OCCUPANT_TYPES")
+
+    def plot_percentage_change_by_payment_types(self) -> go.Figure:
+        return self._plot_percentage_change("PAYMENT_TYPES")
+
+    def plot_percentage_change_by_property_types(self) -> go.Figure:
+        return self._plot_percentage_change("PROPERTY_TYPES")
+
+    def plot_sales_volume_cash_vs_mortgage(self) -> go.Figure:
+        df = self.hpi_df
+        required = {"sales_volume_cash", "sales_volume_mortgage", "ref_period_start"}
+        if df.empty or not required.issubset(df.columns):
+            print("No cash/mortgage sales volume data available")
+            return go.Figure()
+
+        plot_df = df[["ref_period_start", "sales_volume_cash", "sales_volume_mortgage"]].copy()
+        plot_df["total"] = plot_df["sales_volume_cash"].fillna(0) + plot_df["sales_volume_mortgage"].fillna(0)
+        plot_df = plot_df.loc[plot_df["total"] > 0].sort_values("ref_period_start")
+        plot_df["cash_pct"] = plot_df["sales_volume_cash"] / plot_df["total"] * 100
+        plot_df["mortgage_pct"] = plot_df["sales_volume_mortgage"] / plot_df["total"] * 100
+
+        x = list(plot_df["ref_period_start"])
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=list(plot_df["mortgage_pct"]),
+                name="Mortgage",
+                mode="lines",
+                stackgroup="one",
+                line=dict(width=0.5, color="#3498db"),
+                hovertemplate="<b>Mortgage</b><br>%{x|%b %Y}: %{y:.1f}%<extra></extra>",
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=list(plot_df["cash_pct"]),
+                name="Cash",
+                mode="lines",
+                stackgroup="one",
+                line=dict(width=0.5, color="#2ecc71"),
+                hovertemplate="<b>Cash</b><br>%{x|%b %Y}: %{y:.1f}%<extra></extra>",
+            )
+        )
+        fig.update_yaxes(title="Share of Sales (%)", range=[0, 100], ticksuffix="%")
+        fig.update_xaxes(title="Reference Period Start")
+        return cat_plots._update_layout(fig, plot_title=f"Cash Vs. Mortgage Share {self._sub_title}")
