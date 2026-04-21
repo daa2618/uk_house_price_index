@@ -20,4 +20,4 @@ pio.templates["myWatermark"] = go.layout.Template(
     ]
 )
 
-pio.templates.default = "plotly_dark+myWatermark"
+pio.templates.default = "plotly_dark"

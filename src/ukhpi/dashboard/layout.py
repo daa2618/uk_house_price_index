@@ -4,17 +4,17 @@ import dash_mantine_components as dmc
 from dash import dcc, html
 
 from ukhpi.core.sparql import SparqlQuery
-from ukhpi.dashboard.components import build_region_options, control_group
+from ukhpi.dashboard.components import build_region_options, build_sidebar, control_group
 from ukhpi.dashboard.tabs import (
     DEFAULT_END,
     DEFAULT_PERIOD_MODE,
     DEFAULT_REGION,
     DEFAULT_START,
-    DEFAULT_TAB,
+    DEFAULT_VIEW,
     HPI_MAX_YEAR,
     HPI_MIN_YEAR,
     MAX_COMPARE_REGIONS,
-    TAB_CONFIG,
+    VIEW_CONFIG,
 )
 
 _regions_df = SparqlQuery().HPI_REGIONS
@@ -80,7 +80,7 @@ def _slider_marks() -> dict[int, dict]:
     return {y: {"label": str(y), "style": {"color": "#f0f0f0", "fontSize": "12px"}} for y in years}
 
 
-def _controls() -> html.Div:
+def _toolbar() -> html.Div:
     region_dropdown = dcc.Dropdown(
         id="region-dropdown",
         options=REGION_OPTIONS,
@@ -119,6 +119,24 @@ def _controls() -> html.Div:
         tooltip={"placement": "bottom", "always_visible": True},
         allowCross=False,
     )
+    actions = html.Div(
+        style={"display": "flex", "gap": "12px", "alignItems": "center", "flexWrap": "wrap"},
+        children=[
+            dmc.Switch(
+                id="annotations-toggle",
+                label="Historical events",
+                checked=True,
+                size="sm",
+            ),
+            dmc.Button(
+                "⬇ Download CSV",
+                id="download-csv-btn",
+                size="sm",
+                variant="light",
+                color="blue",
+            ),
+        ],
+    )
     return html.Div(
         className="controls-section",
         children=[
@@ -128,6 +146,7 @@ def _controls() -> html.Div:
                 children=[
                     control_group("Select Region", region_group, flex="1", min_width="250px"),
                     control_group("Year Range", year_slider, flex="2", min_width="300px"),
+                    control_group("Actions", actions, flex="1", min_width="260px"),
                 ],
             )
         ],
@@ -148,15 +167,34 @@ def _kpi_section() -> html.Div:
     )
 
 
-def _tabs() -> html.Div:
+def _body() -> html.Div:
     return html.Div(
-        style={"padding": "0 30px", "background": "rgba(42, 42, 42, 0.95)"},
+        className="body-split",
+        style={"display": "flex", "alignItems": "stretch", "minHeight": "calc(100vh - 360px)"},
         children=[
-            dcc.Tabs(
-                id="tabs",
-                value=DEFAULT_TAB,
-                children=[dcc.Tab(label=cfg["label"], value=slug, className="tab") for slug, cfg in TAB_CONFIG.items()],
-                style={"marginBottom": "0"},
+            build_sidebar(VIEW_CONFIG, DEFAULT_VIEW),
+            html.Div(id="tab-content", className="content-section", style={"flex": 1, "minWidth": 0}),
+        ],
+    )
+
+
+def _chart_modal() -> dmc.Modal:
+    return dmc.Modal(
+        id="chart-modal",
+        opened=False,
+        size="90%",
+        centered=True,
+        withCloseButton=True,
+        title="",
+        children=[
+            dcc.Graph(
+                id="modal-graph",
+                style={"height": "80vh"},
+                config={
+                    "displayModeBar": True,
+                    "displaylogo": False,
+                    "modeBarButtonsToRemove": ["pan2d", "lasso2d", "select2d"],
+                },
             )
         ],
     )
@@ -173,12 +211,13 @@ def build_layout() -> dmc.MantineProvider:
                 dcc.Store(id="theme-store", storage_type="local", data="dark"),
                 dcc.Store(id="period-mode-store", data=DEFAULT_PERIOD_MODE),
                 dcc.Store(id="annotations-store", storage_type="local", data=True),
+                dcc.Store(id="view-store", storage_type="local", data=DEFAULT_VIEW),
                 dcc.Download(id="download-csv"),
                 _header(),
-                _controls(),
+                _toolbar(),
                 _kpi_section(),
-                _tabs(),
-                html.Div(id="tab-content", className="content-section"),
+                _body(),
+                _chart_modal(),
             ],
         ),
     )

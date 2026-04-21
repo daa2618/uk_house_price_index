@@ -8,16 +8,17 @@ import pandas as pd
 from dash import Input, Output, State, dcc, html, no_update
 
 from ukhpi.dashboard.annotations import apply_historical_events
-from ukhpi.dashboard.components import build_kpi_row, postcode_tab_layout, render_postcode_content
+from ukhpi.dashboard.components import build_kpi_row, chart_card, postcode_tab_layout, render_postcode_content
 from ukhpi.dashboard.tabs import (
     DEFAULT_GEO_LEVEL,
     DEFAULT_MAP_METRIC,
     DEFAULT_PERIOD_MODE,
+    DEFAULT_VIEW,
     GEO_LEVELS,
     MAX_COMPARE_REGIONS,
     MONTH_OPTIONS,
     PERIOD_MODE_OPTIONS,
-    TAB_CONFIG,
+    VIEW_CONFIG,
 )
 from ukhpi.geo.ops import GeoOps
 from ukhpi.plotting.hpi_plots import HousePriceIndexPlots
@@ -65,21 +66,9 @@ def _build_figure(region: str, method_name: str, start: int, end: int):
     return getattr(hpi, method_name)()
 
 
-def _plot_selector(tab_slug: str, annotations_on: bool = True) -> html.Div:
-    plots = TAB_CONFIG[tab_slug]["plots"]
-    header_children = [
-        html.Label(
-            "📊 Select Visualization:",
-            style={"color": "#ecf0f1", "fontWeight": "600", "fontSize": "16px", "margin": "0"},
-        ),
-        dcc.Dropdown(
-            id={"role": "plot-dropdown", "tab": tab_slug},
-            options=[{"label": f"📈 {k}", "value": k} for k in plots.keys()],
-            value=next(iter(plots.keys())),
-            style={"minWidth": "300px", "flex": "1"},
-            clearable=False,
-        ),
-    ]
+def _category_view(tab_slug: str, annotations_on: bool = True) -> html.Div:
+    plots = VIEW_CONFIG[tab_slug]["plots"]
+    header_children: list = []
     if tab_slug == "annual_change":
         header_children.append(
             dmc.SegmentedControl(
@@ -89,69 +78,68 @@ def _plot_selector(tab_slug: str, annotations_on: bool = True) -> html.Div:
                 size="sm",
             )
         )
-    header_children.append(
-        dmc.Switch(
-            id="annotations-toggle",
-            label="Historical events",
-            checked=bool(annotations_on),
-            size="sm",
-        )
-    )
-    header_children.append(
-        dmc.Button(
-            "⬇ Download CSV",
-            id={"role": "download-csv-btn", "tab": tab_slug},
-            size="sm",
-            variant="light",
-            color="blue",
-        )
-    )
-    return html.Div(
-        className="graph-container",
-        children=[
+    cards = [chart_card(view=tab_slug, method=method, label=label) for label, method in plots.items()]
+    view_body = [
+        html.Div(
+            className="canvas",
+            style={"padding": "16px 20px"},
+            children=dmc.SimpleGrid(cols={"base": 1, "md": 2}, spacing="md", children=cards),
+        ),
+    ]
+    if header_children:
+        view_body.insert(
+            0,
             html.Div(
                 style={
-                    "padding": "20px 30px",
+                    "padding": "12px 24px",
                     "background": "rgba(52, 73, 94, 0.9)",
                     "borderBottom": "2px solid #3498db",
                 },
-                children=[
-                    html.Div(
-                        style={"display": "flex", "alignItems": "center", "gap": "15px", "flexWrap": "wrap"},
-                        children=header_children,
-                    )
-                ],
+                children=[dmc.Group(align="center", gap="md", children=header_children)],
             ),
-            html.Div(
-                className="graph-wrapper",
-                children=[
-                    dcc.Loading(
-                        id={"role": "loading", "tab": tab_slug},
-                        type="circle",
-                        color="#3498db",
-                        children=[
-                            dcc.Graph(
-                                id={"role": "graph", "tab": tab_slug},
-                                style={"height": "100%", "width": "100%"},
-                                config={
-                                    "displayModeBar": True,
-                                    "displaylogo": False,
-                                    "modeBarButtonsToRemove": ["pan2d", "lasso2d", "select2d"],
-                                    "toImageButtonOptions": {
-                                        "format": "png",
-                                        "filename": f"uk_housing_{tab_slug}",
-                                        "height": 800,
-                                        "width": 1200,
-                                        "scale": 2,
-                                    },
-                                },
-                            )
-                        ],
-                    )
-                ],
-            ),
-        ],
-    )
+        )
+    # annotations_on stays in scope for the Store; the toolbar Switch reflects it globally.
+    _ = annotations_on
+    return html.Div(className="graph-container", children=view_body)
+
+
+def _compose_figure(
+    region: str,
+    method_name: str,
+    start: int,
+    end: int,
+    theme: str | None,
+    compare_on: bool,
+    compare_list: list | None,
+    annotations_on: bool,
+):
+    fig = _build_figure(region, method_name, start, end)
+    for trace in fig.data:
+        trace.name = _prettify_trace_name(getattr(trace, "name", "") or "")
+    extra_regions = [r for r in (compare_list or []) if r and r != region] if compare_on else []
+    if extra_regions:
+        for trace in fig.data:
+            trace.name = f"{_region_label(region)} · {trace.name}"
+        for extra in extra_regions[:MAX_COMPARE_REGIONS]:
+            extra_fig = _build_figure(extra, method_name, start, end)
+            for trace in extra_fig.data:
+                trace.name = f"{_region_label(extra)} · {_prettify_trace_name(trace.name or '')}"
+                fig.add_trace(trace)
+    fig = _apply_dashboard_theme(fig, theme=theme or "dark", window=(start, end))
+    return apply_historical_events(fig, enabled=bool(annotations_on), window=(start, end))
+
+
+def _resolve_method(view: str, method_name: str, period_mode: str | None) -> str:
+    if view == "annual_change" and period_mode == "period":
+        return method_name.replace("percentage_annual_change", "percentage_change")
+    return method_name
+
+
+def _method_label(view: str, method_name: str) -> str:
+    for label, m in VIEW_CONFIG.get(view, {}).get("plots", {}).items():
+        if m == method_name or method_name.endswith(m.split("_by_")[-1]):
+            return label
+    return method_name
 
 
 def _map_tab(default_year: int) -> html.Div:
@@ -252,20 +240,74 @@ def _map_tab(default_year: int) -> html.Div:
     )
 
 
-def _apply_dashboard_theme(fig, theme: str = "dark"):
+_LEGEND_PREFIXES = (
+    "percentage_annual_change_",
+    "percentage_change_",
+    "average_price_",
+    "house_price_index_",
+    "sales_volume_",
+)
+
+_LEGEND_BARE_NAMES = {
+    "percentage_annual_change": "All",
+    "percentage_change": "All",
+    "average_price": "All",
+    "house_price_index": "All",
+    "sales_volume": "All",
+}
+
+
+def _prettify_trace_name(name: str) -> str:
+    if not name:
+        return name
+    if name in _LEGEND_BARE_NAMES:
+        return _LEGEND_BARE_NAMES[name]
+    stripped = name
+    for prefix in _LEGEND_PREFIXES:
+        if stripped.startswith(prefix):
+            stripped = stripped[len(prefix):]
+            break
+    return stripped.replace("_", " ").strip().capitalize()
+
+
+def _apply_dashboard_theme(fig, theme: str = "dark", window: tuple[int, int] | None = None):
     palette = _LIGHT if theme == "light" else _DARK
+    for trace in fig.data:
+        trace.name = _prettify_trace_name(getattr(trace, "name", "") or "")
     fig.update_layout(
         height=None,
-        margin=dict(l=50, r=50, t=80, b=50),
+        margin=dict(l=48, r=24, t=32, b=40),
         plot_bgcolor=palette["plot_bg"],
         paper_bgcolor=palette["paper_bg"],
         font=dict(color=palette["font"], size=12),
-        title=dict(font=dict(size=24, color=palette["title"]), x=0.5, y=0.95),
+        title=dict(font=dict(size=14, color=palette["title"]), x=0.02, y=0.98, xanchor="left", yanchor="top"),
         xaxis=dict(gridcolor=palette["grid"], zerolinecolor=palette["zero"]),
         yaxis=dict(gridcolor=palette["grid"], zerolinecolor=palette["zero"]),
-        legend=dict(bgcolor=palette["legend_bg"], bordercolor="rgba(128, 128, 128, 0.5)", borderwidth=1),
+        legend=dict(
+            bgcolor=palette["legend_bg"],
+            bordercolor="rgba(128, 128, 128, 0.5)",
+            borderwidth=1,
+            title_text="",
+        ),
     )
+    if window is not None and _is_time_axis(fig):
+        start_ts = pd.Timestamp(year=window[0], month=1, day=1)
+        end_ts = pd.Timestamp(year=window[1], month=12, day=31)
+        fig.update_xaxes(range=[start_ts, end_ts])
     return fig
+
+
+def _is_time_axis(fig) -> bool:
+    for trace in fig.data:
+        x = getattr(trace, "x", None)
+        if x is None or len(x) == 0:
+            continue
+        try:
+            pd.to_datetime(x[0])
+            return True
+        except (ValueError, TypeError):
+            return False
+    return False
 
 
 def _apply_map_theme(fig, theme: str = "dark"):
@@ -282,52 +324,86 @@ def _apply_map_theme(fig, theme: str = "dark"):
 def register_callbacks(app: dash.Dash) -> None:
     @app.callback(
         Output("tab-content", "children"),
-        Input("tabs", "value"),
+        Input("view-store", "data"),
         State("year-slider", "value"),
         State("annotations-store", "data"),
     )
     def render_tab(tab_slug: str, year_range, annotations_on):
+        tab_slug = tab_slug or DEFAULT_VIEW
         if tab_slug == "map":
             end = (year_range or [None, None])[1] or 2024
             return _map_tab(default_year=end)
         if tab_slug == "postcode":
             return postcode_tab_layout()
-        return _plot_selector(tab_slug, annotations_on=annotations_on if annotations_on is not None else True)
+        return _category_view(tab_slug, annotations_on=annotations_on if annotations_on is not None else True)
 
     @app.callback(
-        Output({"role": "graph", "tab": dash.MATCH}, "figure"),
+        Output("view-store", "data"),
+        Input({"role": "view-nav", "view": dash.ALL}, "n_clicks"),
+        State("view-store", "data"),
+        prevent_initial_call=True,
+    )
+    def navigate(n_clicks_list, current):
+        if not any(n_clicks_list or []):
+            return no_update
+        triggered = dash.callback_context.triggered_id
+        if not isinstance(triggered, dict) or triggered.get("role") != "view-nav":
+            return no_update
+        new_view = triggered["view"]
+        return no_update if new_view == current else new_view
+
+    @app.callback(
+        Output({"role": "view-nav", "view": dash.ALL}, "active"),
+        Input("view-store", "data"),
+        State({"role": "view-nav", "view": dash.ALL}, "id"),
+    )
+    def highlight_active_nav(current, ids):
+        current = current or DEFAULT_VIEW
+        return [nav_id["view"] == current for nav_id in ids]
+
+    @app.callback(
+        Output({"role": "grid-graph", "view": dash.MATCH, "method": dash.MATCH}, "figure"),
         Input("region-dropdown", "value"),
-        Input({"role": "plot-dropdown", "tab": dash.MATCH}, "value"),
         Input("year-slider", "value"),
         Input("theme-store", "data"),
         Input("period-mode-store", "data"),
         Input("compare-toggle", "checked"),
         Input("compare-regions", "value"),
         Input("annotations-store", "data"),
-        State({"role": "plot-dropdown", "tab": dash.MATCH}, "id"),
-        prevent_initial_call="initial_duplicate",
+        State({"role": "grid-graph", "view": dash.MATCH, "method": dash.MATCH}, "id"),
     )
-    def update_graph(
-        region, plot_choice, year_range, theme, period_mode, compare_on, compare_list, annotations_on, dropdown_id
-    ):
-        tab_slug = dropdown_id["tab"]
-        method_name = TAB_CONFIG[tab_slug]["plots"][plot_choice]
-        if tab_slug == "annual_change" and period_mode == "period":
-            method_name = method_name.replace("percentage_annual_change", "percentage_change")
+    def update_grid_graph(region, year_range, theme, period_mode, compare_on, compare_list, annotations_on, graph_id):
+        view = graph_id["view"]
+        method_name = _resolve_method(view, graph_id["method"], period_mode)
         start, end = year_range
-        fig = _build_figure(region, method_name, start, end)
+        return _compose_figure(region, method_name, start, end, theme, compare_on, compare_list, annotations_on)
 
-        extra_regions = [r for r in (compare_list or []) if r and r != region] if compare_on else []
-        if extra_regions:
-            for trace in fig.data:
-                trace.name = f"{_region_label(region)} · {trace.name}"
-            for extra in extra_regions[:MAX_COMPARE_REGIONS]:
-                extra_fig = _build_figure(extra, method_name, start, end)
-                for trace in extra_fig.data:
-                    trace.name = f"{_region_label(extra)} · {trace.name}"
-                    fig.add_trace(trace)
-        fig = _apply_dashboard_theme(fig, theme=theme or "dark")
-        return apply_historical_events(fig, enabled=bool(annotations_on))
+    @app.callback(
+        Output("chart-modal", "opened"),
+        Output("modal-graph", "figure"),
+        Output("chart-modal", "title"),
+        Input({"role": "grid-graph-card", "view": dash.ALL, "method": dash.ALL}, "n_clicks"),
+        State("region-dropdown", "value"),
+        State("year-slider", "value"),
+        State("theme-store", "data"),
+        State("period-mode-store", "data"),
+        State("compare-toggle", "checked"),
+        State("compare-regions", "value"),
+        State("annotations-store", "data"),
+        prevent_initial_call=True,
+    )
+    def open_chart_modal(card_clicks, region, year_range, theme, period_mode, compare_on, compare_list, annotations_on):
+        if not any(card_clicks or []):
+            return no_update, no_update, no_update
+        triggered = dash.callback_context.triggered_id
+        if not isinstance(triggered, dict) or triggered.get("role") != "grid-graph-card":
+            return no_update, no_update, no_update
+        view = triggered["view"]
+        method_name = _resolve_method(view, triggered["method"], period_mode)
+        start, end = year_range
+        fig = _compose_figure(region, method_name, start, end, theme, compare_on, compare_list, annotations_on)
+        title = f"{VIEW_CONFIG[view]['label']} · {_method_label(view, triggered['method'])}"
+        return True, fig, title
 
     @app.callback(
         Output("period-mode-store", "data"),
@@ -346,6 +422,14 @@ def register_callbacks(app: dash.Dash) -> None:
         return bool(checked)
 
     @app.callback(
+        Output("annotations-toggle", "checked"),
+        Input("url", "pathname"),
+        State("annotations-store", "data"),
+    )
+    def hydrate_annotations_toggle(_pathname, stored):
+        return True if stored is None else bool(stored)
+
+    @app.callback(
         Output("compare-regions-wrapper", "style"),
         Input("compare-toggle", "checked"),
     )
@@ -354,15 +438,15 @@ def register_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         Output("download-csv", "data"),
-        Input({"role": "download-csv-btn", "tab": dash.ALL}, "n_clicks"),
+        Input("download-csv-btn", "n_clicks"),
         State("region-dropdown", "value"),
         State("year-slider", "value"),
         State("compare-toggle", "checked"),
         State("compare-regions", "value"),
         prevent_initial_call=True,
     )
-    def export_csv(n_clicks_list, region, year_range, compare_on, compare_list):
-        if not any(n_clicks_list or []):
+    def export_csv(n_clicks, region, year_range, compare_on, compare_list):
+        if not n_clicks:
             return no_update
         start, end = year_range
         regions = [region]
@@ -384,40 +468,40 @@ def register_callbacks(app: dash.Dash) -> None:
     @app.callback(
         Output("region-dropdown", "value", allow_duplicate=True),
         Output("year-slider", "value", allow_duplicate=True),
-        Output("tabs", "value", allow_duplicate=True),
+        Output("view-store", "data", allow_duplicate=True),
         Input("url", "search"),
         State("region-dropdown", "value"),
         State("year-slider", "value"),
-        State("tabs", "value"),
+        State("view-store", "data"),
         prevent_initial_call="initial_duplicate",
     )
-    def load_url_state(search, cur_region, cur_year, cur_tab):
+    def load_url_state(search, cur_region, cur_year, cur_view):
         if not search:
             return no_update, no_update, no_update
         params = parse_qs(search.lstrip("?"))
         region = params.get("region", [None])[0]
         start = params.get("start", [None])[0]
         end = params.get("end", [None])[0]
-        tab = params.get("tab", [None])[0]
+        view = params.get("view", [None])[0]
 
         region_out = region if region and region != cur_region else no_update
         try:
             year_out = [int(start), int(end)] if start and end and [int(start), int(end)] != cur_year else no_update
         except ValueError:
             year_out = no_update
-        tab_out = tab if tab and tab in TAB_CONFIG and tab != cur_tab else no_update
-        return region_out, year_out, tab_out
+        view_out = view if view and view in VIEW_CONFIG and view != cur_view else no_update
+        return region_out, year_out, view_out
 
     @app.callback(
         Output("url", "search"),
         Input("region-dropdown", "value"),
         Input("year-slider", "value"),
-        Input("tabs", "value"),
+        Input("view-store", "data"),
         prevent_initial_call=True,
     )
-    def save_url_state(region, year_range, tab):
+    def save_url_state(region, year_range, view):
         start, end = year_range or [None, None]
-        query = {"region": region, "start": start, "end": end, "tab": tab}
+        query = {"region": region, "start": start, "end": end, "view": view}
         query = {k: v for k, v in query.items() if v is not None}
         return "?" + urlencode(query) if query else ""
 

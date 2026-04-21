@@ -5,7 +5,7 @@ from datetime import datetime
 HPI_MIN_YEAR = 1995
 HPI_MAX_YEAR = datetime.now().year
 
-TAB_CONFIG: dict[str, dict] = {
+VIEW_CONFIG: dict[str, dict] = {
     "avg_prices": {
         "label": "📊 Average Prices",
         "plots": {
@@ -83,7 +83,7 @@ DEFAULT_PERIOD_MODE = "annual"
 
 MAX_COMPARE_REGIONS = 3
 
-DEFAULT_TAB = "avg_prices"
+DEFAULT_VIEW = "avg_prices"
 DEFAULT_REGION = "england"
 DEFAULT_START = 2020
 DEFAULT_END = min(2024, HPI_MAX_YEAR)

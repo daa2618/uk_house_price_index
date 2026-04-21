@@ -3,8 +3,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import plotly.io as pio
+
 from ukhpi.plotting.hpi_plots import HousePriceIndexPlots
 from ukhpi.plotting.save import PlotSaver
+
+pio.templates.default = "plotly_dark+myWatermark"
 
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "src" / "ukhpi" / "images"
 

@@ -28,9 +28,21 @@ body {
 
 .content-section {
     padding: 0;
-    height: calc(100vh - 200px);
     display: flex;
     flex-direction: column;
+}
+
+.sidebar {
+    width: 210px;
+    padding: 16px 10px;
+    background: rgba(30, 30, 30, 0.92);
+    border-right: 1px solid rgba(128, 128, 128, 0.2);
+    flex-shrink: 0;
+}
+
+[data-mantine-color-scheme="light"] .sidebar {
+    background: rgba(255, 255, 255, 0.92);
+    border-right: 1px solid rgba(33, 37, 41, 0.1);
 }
 
 .control-group {
@@ -88,29 +100,6 @@ body {
     color: white !important;
 }
 
-/* Tab Styling */
-.tab {
-    background: linear-gradient(145deg, #3a3a3a, #2a2a2a) !important;
-    border: 1px solid #555 !important;
-    border-radius: 8px 8px 0 0 !important;
-    margin-right: 2px !important;
-    transition: all 0.3s ease !important;
-}
-
-.tab:hover {
-    background: linear-gradient(145deg, #4a4a4a, #3a3a3a) !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
-}
-
-.tab--selected {
-    background: linear-gradient(145deg, #3498db, #2980b9) !important;
-    color: white !important;
-    border-bottom: 3px solid #3498db !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 20px rgba(52, 152, 219, 0.4) !important;
-}
-
 /* Range Slider */
 .rc-slider-track {
     background: linear-gradient(90deg, #3498db, #2ecc71) !important;
@@ -128,6 +117,16 @@ body {
 
 .rc-slider-handle:hover {
     box-shadow: 0 4px 20px rgba(52, 152, 219, 0.7) !important;
+}
+
+/* Chart Card (grid view) */
+.chart-card {
+    transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.chart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.25);
 }
 
 /* Graph Container */
@@ -226,16 +225,6 @@ body {
 [data-mantine-color-scheme="light"] .Select-option {
     background-color: #ffffff !important;
     color: #212529 !important;
-}
-
-[data-mantine-color-scheme="light"] .tab {
-    background: linear-gradient(145deg, #ffffff, #f1f3f5) !important;
-    border: 1px solid #dee2e6 !important;
-    color: #495057 !important;
-}
-
-[data-mantine-color-scheme="light"] .tab:hover {
-    background: linear-gradient(145deg, #f8f9fa, #e9ecef) !important;
 }
 
 [data-mantine-color-scheme="light"] .graph-container {
