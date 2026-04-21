@@ -84,10 +84,13 @@ class PricePaidData:
             return pd.DataFrame()
         out = []
         for address in results_df["address"].unique():
-            filtered = results_df.loc[
-                (results_df["address"] == address)
-                & (results_df["category"] == "Standard price paid transaction")
-            ].sort_values("date").reset_index(drop=True)
+            filtered = (
+                results_df.loc[
+                    (results_df["address"] == address) & (results_df["category"] == "Standard price paid transaction")
+                ]
+                .sort_values("date")
+                .reset_index(drop=True)
+            )
             if len(filtered) < 2:
                 continue
 
@@ -245,11 +248,7 @@ class PricePaidDataPlots(PricePaidData):
             return fig.update_layout(title=dict(text="<b>TENURE MIX</b>", x=0.5))
 
         tenure = df.dropna(subset=["estate_type"])
-        grouped = (
-            tenure.groupby("estate_type")["amount"]
-            .agg(count="count", median="median")
-            .reset_index()
-        )
+        grouped = tenure.groupby("estate_type")["amount"].agg(count="count", median="median").reset_index()
         fig = make_subplots(
             rows=1,
             cols=2,

@@ -265,7 +265,7 @@ def _prettify_trace_name(name: str) -> str:
     stripped = name
     for prefix in _LEGEND_PREFIXES:
         if stripped.startswith(prefix):
-            stripped = stripped[len(prefix):]
+            stripped = stripped[len(prefix) :]
             break
     return stripped.replace("_", " ").strip().capitalize()
 

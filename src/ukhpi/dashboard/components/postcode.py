@@ -154,10 +154,20 @@ def _appreciation_table(appr: pd.DataFrame, limit: int = 10) -> dash_table.DataT
     if "cagr_pct" in top.columns:
         top["cagr_pct"] = top["cagr_pct"].map(lambda v: f"{v:+.1f}%" if pd.notna(v) else "")
 
-    column_order = [c for c in (
-        "address", "first_date", "last_date", "hold_years",
-        "p_start", "p_end", "price_change", "cagr_pct",
-    ) if c in top.columns]
+    column_order = [
+        c
+        for c in (
+            "address",
+            "first_date",
+            "last_date",
+            "hold_years",
+            "p_start",
+            "p_end",
+            "price_change",
+            "cagr_pct",
+        )
+        if c in top.columns
+    ]
     top = top[column_order]
 
     pretty = {
