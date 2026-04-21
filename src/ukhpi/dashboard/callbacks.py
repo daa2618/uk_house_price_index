@@ -521,15 +521,41 @@ def register_callbacks(app: dash.Dash) -> None:
         Output("postcode-content", "children"),
         Input("postcode-fetch-btn", "n_clicks"),
         Input("postcode-input", "n_submit"),
+        Input("postcode-category-filter", "value"),
         State("postcode-input", "value"),
         State("theme-store", "data"),
         prevent_initial_call=True,
     )
-    def fetch_postcode(_n, _submit, postcode, theme):
+    def fetch_postcode(_n, _submit, category_filter, postcode, theme):
         def _theme(fig):
             return _apply_dashboard_theme(fig, theme=theme or "dark")
 
-        return render_postcode_content(postcode, _theme)
+        return render_postcode_content(postcode, _theme, category_filter or "standard")
+
+    @app.callback(
+        Output("postcode-download-csv", "data"),
+        Input("postcode-download-btn", "n_clicks"),
+        State("postcode-input", "value"),
+        State("postcode-category-filter", "value"),
+        prevent_initial_call=True,
+    )
+    def export_postcode_csv(n_clicks, postcode, category_filter):
+        from ukhpi.core.ppi import PricePaidData
+        from ukhpi.dashboard.components.postcode import _filter_by_category
+
+        if not n_clicks or not postcode or not postcode.strip():
+            return no_update
+        pc = postcode.strip().upper()
+        try:
+            df = PricePaidData(pc).clean_df()
+        except Exception:
+            return no_update
+        if df.empty:
+            return no_update
+        scoped = _filter_by_category(df, category_filter or "standard")
+        out = scoped if not scoped.empty else df
+        filename = f"ppd_{pc.replace(' ', '')}_{category_filter or 'all'}.csv"
+        return dcc.send_data_frame(out.to_csv, filename, index=False)
 
     @app.callback(
         Output("kpi-row", "children"),

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Dependency management is Poetry (`pyproject.toml`, `poetry.lock`); `requires-python = ">=3.12"`.
 - Install: `poetry install`. If the in-project `.venv` is stale (Homebrew Python upgrades leave dead symlinks and Poetry fails with `[Errno 2] No such file or directory: 'python'`), delete both `.venv/` and the cached env under `~/Library/Caches/pypoetry/virtualenvs/uk-house-price-index-*`, then `poetry env use "$(pyenv which python)"` before reinstalling.
-- Launch the main dashboard (auto-opens `http://127.0.0.1:8054`): `poetry run python scripts/dashboard_improved.py` (accepts `--host`, `--port`, `--no-debug`, `--no-open-browser`). `scripts/dashboard_basic.py` runs the minimal variant.
+- Launch the main dashboard (auto-opens `http://127.0.0.1:8054`): `poetry run python scripts/dashboard_improved.py` (accepts `--host`, `--port`, `--no-debug`, `--no-open-browser`).
 - Regenerate the static plot gallery under `src/ukhpi/images/`: `poetry run python scripts/generate_plots.py` (accepts `--start-year`, `--end-year`, `--region`, `--output-dir`).
 - Collect HPI data for every region in bulk: `poetry run python scripts/collect_data.py --start-year 1990 --end-year 2025`.
 - Build the postcode-lookups SQLite db: `poetry run python scripts/build_postcode_lookups_db.py` (accepts `--url`, `--db-directory`, `--db-name`, `--table-name`).
@@ -28,7 +28,7 @@ src/ukhpi/
 ├── geo/           # ops.py — choropleth + region merging
 ├── plotting/      # hpi_plots, categories, theme, save
 ├── io/            # versioning (FileVersion), loader (Dataset), writer (WriteFile), response
-├── dashboard/     # app_improved (port 8054), app_basic, assets/
+├── dashboard/     # app (port 8054), assets/
 ├── postcode_lookups/
 ├── cache/         # Runtime cache (gitignored): hpi_data/, region_data/, geo_data/
 ├── images/        # Static plot gallery output
@@ -50,7 +50,7 @@ The core pipeline is SPARQL-first, with a local cache layer in front:
 `ukhpi.io.versioning :: FileVersion` writes files named `{file_name}_{MMDDYYYY}.{ext}` and resolves `latest_file_path` by parsing the date suffix. `load_latest_file(instance, method_name, **kwargs)` re-invokes the given method to refetch data when no cached version exists. Cached datasets live under `src/ukhpi/cache/{hpi_data,region_data,geo_data}/` and are gitignored — regenerate them with the `ukhpi.core.collection` CLI or by triggering a cache-miss fetch.
 
 ### Dashboard layer
-`ukhpi.dashboard.app_improved` is a single-file Dash app with inline CSS. It imports `HousePriceIndexPlots` and `SparqlQuery` and drives plot selection through dropdowns/sliders. The `assets/` directory is Dash's conventional auto-loaded CSS/JS location.
+`ukhpi.dashboard.app` is the Dash entry point (`layout.py` + `callbacks.py` + `components/`). It imports `HousePriceIndexPlots`, `SparqlQuery`, and `PricePaidDataPlots` and drives plot selection through dropdowns, sliders, and a sidebar nav. The `assets/` directory is Dash's conventional auto-loaded CSS/JS location.
 
 ## Conventions worth preserving
 

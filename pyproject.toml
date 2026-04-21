@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ukhpi-dashboard = "ukhpi.dashboard.app_improved:main"
+ukhpi-dashboard = "ukhpi.dashboard.app:main"
 ukhpi-collect = "ukhpi.core.collection:main"
 
 

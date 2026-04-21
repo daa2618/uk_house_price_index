@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import argparse
 
-from ukhpi.dashboard.app_improved import main
+from ukhpi.dashboard.app import main
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Launch the improved UK HPI Dash dashboard.")
+    parser = argparse.ArgumentParser(description="Launch the UK HPI Dash dashboard.")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host interface (default: 127.0.0.1).")
     parser.add_argument("--port", type=int, default=8054, help="Port to bind (default: 8054).")
     parser.add_argument("--no-debug", action="store_true", help="Disable Dash debug mode.")

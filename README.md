@@ -1,6 +1,6 @@
 # UK House Price Index Dashboard
 
-![HPI Dashboard landing](docs/screenshots/dashboard_landing.jpg) ![Region selector](docs/screenshots/region_selector.jpg) ![Plot configuration](docs/screenshots/plot_configuration.jpg) ![Interactive plot](docs/screenshots/interactive_plot.jpg)
+![HPI Dashboard landing](docs/screenshots/dashboard_landing.jpg)
 
 A Python toolkit and interactive Dash application for exploring the UK House Price Index (HPI) across geographies, time periods, and property characteristics. The project combines data ingestion utilities, caching/versioning helpers, and a gallery of ready-made Plotly visualisations.
 
@@ -33,7 +33,7 @@ The UK Land Registry publishes the UK House Price Index (HPI) via SPARQL and RES
 - **End-to-end data access**: `HousePriceIndex` (in `ukhpi.core.hpi`) builds SPARQL queries, fetches monthly series, and reshapes them into tidy data frames.
 - **Caching and versioning**: `FileVersion` and `Dataset` (in `ukhpi.io`) persist timestamped snapshots under `src/ukhpi/cache/`.
 - **Plot factory**: `HousePriceIndexPlots` (in `ukhpi.plotting.hpi_plots`) exposes dozens of pre-configured Plotly figures covering averages, index trends, annual change, and sales volumes.
-- **Dash dashboard**: `ukhpi.dashboard.app_improved` ships a polished, themable app with region pickers, year sliders, and tabbed plot collections.
+- **Dash dashboard**: `ukhpi.dashboard.app` ships a polished, themable app with region pickers, year sliders, a postcode-level price-paid view (with CAGR-based repeat-sales analysis), and CSV export.
 - **Geospatial helpers**: `ukhpi.geo.ops` and `ukhpi.postcode_lookups` simplify mapping and regional filtering workflows.
 - **Automated assets**: `scripts/generate_plots.py` regenerates the static chart gallery in batch.
 
@@ -59,8 +59,7 @@ uk_house_price_index/
 │   │   ├── loader.py          # Dataset — read cached CSV/JSON from disk
 │   │   └── writer.py          # WriteFile — persist DataFrames
 │   ├── dashboard/
-│   │   ├── app_improved.py    # Production Dash app (port 8054)
-│   │   ├── app_basic.py       # Minimal starter variant
+│   │   ├── app.py             # Dash app (port 8054)
 │   │   └── assets/            # Dash auto-loaded CSS/JS
 │   ├── postcode_lookups/      # Postcode-level helpers
 │   ├── cache/                 # Runtime cache (gitignored)
@@ -147,33 +146,20 @@ Options: `--start-year`, `--end-year`, `--region`, `--output-dir` (defaults to `
 
 ### Launching the dashboard
 
-The improved Dash application auto-opens a browser tab on port `8054`:
+The Dash application auto-opens a browser tab on port `8054`:
 
 ```bash
 poetry run python scripts/dashboard_improved.py
 ```
 
-Options: `--host`, `--port`, `--no-debug`, `--no-open-browser`. Use the region dropdown, metric selectors, and year slider to explore different breakdowns. `scripts/dashboard_basic.py` is a lean alternative or a starting point for custom layouts.
+Options: `--host`, `--port`, `--no-debug`, `--no-open-browser`. Use the region dropdown, metric selectors, and year slider to explore different breakdowns.
 
 ## Sample Visual Gallery
 
-### Average Price Views
-![Average Price By Build Types London 2020 2024](src/ukhpi/images/average_price_by_build_types_london_2020_2024.png) ![Average Price By Build Types West-Northamptonshire 2020 2024](src/ukhpi/images/average_price_by_build_types_west-northamptonshire_2020_2024.png)
-![Average Price By Occupant Types West-Northamptonshire 2020 2024](src/ukhpi/images/average_price_by_occupant_types_west-northamptonshire_2020_2024.png) ![Average Price By Payment Types West-Northamptonshire 2020 2024](src/ukhpi/images/average_price_by_payment_types_west-northamptonshire_2020_2024.png)
-![Average Price By Property Types London 2020 2024](src/ukhpi/images/average_price_by_property_types_london_2020_2024.png) ![Average Price By Property Types West-Northamptonshire 2020 2024](src/ukhpi/images/average_price_by_property_types_west-northamptonshire_2020_2024.png)
+A couple of representative figures from the static gallery (see `src/ukhpi/images/` for the full set, regenerated via `scripts/generate_plots.py`):
 
-### Index Levels
-![House Price Index By Build Type London 2020 2024](src/ukhpi/images/house_price_index_by_build_type_london_2020_2024.png) ![House Price Index By Build Type West-Northamptonshire 2020 2024](src/ukhpi/images/house_price_index_by_build_type_west-northamptonshire_2020_2024.png)
-![House Price Index By Occupant Types West-Northamptonshire 2020 2024](src/ukhpi/images/house_price_index_by_occupant_types_west-northamptonshire_2020_2024.png) ![House Price Index By Payment Types West-Northamptonshire 2020 2024](src/ukhpi/images/house_price_index_by_payment_types_west-northamptonshire_2020_2024.png)
-![House Price Index By Property Types London 2020 2024](src/ukhpi/images/house_price_index_by_property_types_london_2020_2024.png) ![House Price Index By Property Types West-Northamptonshire 2020 2024](src/ukhpi/images/house_price_index_by_property_types_west-northamptonshire_2020_2024.png)
-
-### Annual Change
-![Percentage Annual Change By Build Types London 2020 2024](src/ukhpi/images/percentage_annual_change_by_build_types_london_2020_2024.png) ![Percentage Annual Change By Build Types West-Northamptonshire 2020 2024](src/ukhpi/images/percentage_annual_change_by_build_types_west-northamptonshire_2020_2024.png)
-![Percentage Annual Change By Occupant Types West-Northamptonshire 2020 2024](src/ukhpi/images/percentage_annual_change_by_occupant_types_west-northamptonshire_2020_2024.png) ![Percentage Annual Change By Payment Types West-Northamptonshire 2020 2024](src/ukhpi/images/percentage_annual_change_by_payment_types_west-northamptonshire_2020_2024.png)
-![Percentage Annual Change By Property Types West-Northamptonshire 2020 2024](src/ukhpi/images/percentage_annual_change_by_property_types_west-northamptonshire_2020_2024.png)
-
-### Transaction Volumes
-![Sales Volume By Build Types West-Northamptonshire 2020 2024](src/ukhpi/images/sales_volume_by_build_types_west-northamptonshire_2020_2024.png) ![Sales Volume By Payment Types West-Northamptonshire 2020 2024](src/ukhpi/images/sales_volume_by_payment_types_west-northamptonshire_2020_2024.png)
+![Average price by property type — London, 2020–2024](src/ukhpi/images/average_price_by_property_types_london_2020_2024.png)
+![House price index by property type — London, 2020–2024](src/ukhpi/images/house_price_index_by_property_types_london_2020_2024.png)
 
 ## Notebooks
 
