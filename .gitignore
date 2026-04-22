@@ -223,3 +223,6 @@ src/ukhpi/cache/geo_data/
 !src/ukhpi/cache/geo_data/.gitkeep
 CLAUDE.md
 CLAUDE.md
+
+**/.DS_Store
+
